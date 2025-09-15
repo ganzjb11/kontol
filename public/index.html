@@ -15,53 +15,39 @@
             --text-color: #f0f0f0;
             --placeholder-color: #8c829e;
         }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
         body, html {
             font-family: 'Poppins', sans-serif;
             background: var(--bg-color);
             color: var(--text-color);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 1rem;
         }
-
         .main-container {
             width: 100%;
             max-width: 400px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            padding: 2rem 1rem;
+            min-height: 100vh;
+            margin: 0 auto;
         }
-
         .header {
             width: 100%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 0.5rem;
             margin-bottom: 2rem;
-            color: var(--light-purple);
         }
-        
         .header .menu-icon {
-            font-size: 1.5rem;
+            font-size: 2rem;
             cursor: pointer;
+            color: var(--light-purple);
+            z-index: 1001;
         }
-
-        .header .title-brand {
-            font-size: 1.5rem;
-            font-weight: 700;
-            letter-spacing: 2px;
-        }
-
         .logo {
             width: 150px;
             height: 150px;
@@ -71,22 +57,19 @@
             object-fit: cover;
             margin-bottom: 2rem;
         }
-
         .title {
             font-size: 2rem;
             font-weight: 600;
             color: var(--text-color);
             margin-bottom: 2rem;
         }
-
         #createPanelForm {
             width: 100%;
             display: flex;
             flex-direction: column;
             gap: 1rem;
         }
-
-        input, select, #createPanelBtn {
+        input, select, .form-button {
             width: 100%;
             padding: 1rem;
             background-color: var(--card-bg);
@@ -97,72 +80,59 @@
             font-family: 'Poppins', sans-serif;
             transition: all 0.2s ease-in-out;
         }
-
         input::placeholder {
             color: var(--placeholder-color);
         }
-
         input:focus, select:focus {
             outline: none;
             box-shadow: 0 0 15px rgba(156, 60, 255, 0.8);
         }
-        
         select {
             appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23c89cff' class='bi bi-caret-down-fill' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23c89cff' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: right 1rem center;
         }
-        
         select option {
             background: var(--card-bg);
-            color: var(--text-color);
         }
-
-        #createPanelBtn {
+        .form-button {
             background-color: var(--main-purple);
             font-weight: 700;
             cursor: pointer;
             margin-top: 1rem;
         }
-
-        #createPanelBtn:hover:not(:disabled) {
+        .form-button:hover:not(:disabled) {
             background-color: var(--light-purple);
             color: var(--bg-color);
             box-shadow: 0 0 20px rgba(156, 60, 255, 0.8);
         }
-        
-        #createPanelBtn:disabled {
+        .form-button:disabled {
             background-color: #555;
             border-color: #555;
             cursor: not-allowed;
         }
-
         .credit {
             margin-top: 2rem;
             color: var(--placeholder-color);
             font-size: 0.9rem;
         }
-
         .footer {
             width: 100%;
             margin-top: 3rem;
-            padding: 1rem;
+            padding-top: 1rem;
             border-top: 1px solid var(--card-bg);
             text-align: center;
         }
-
         .status-display {
             font-size: 1rem;
             font-weight: 600;
             margin-bottom: 1rem;
         }
-
         .status-display span {
             color: var(--main-purple);
             text-transform: uppercase;
         }
-        
         .logout-btn-footer {
             background: transparent;
             border: 1px solid var(--light-purple);
@@ -176,9 +146,77 @@
             background: var(--light-purple);
             color: var(--bg-color);
         }
-
-        /* -- Style Modal Disesuaikan -- */
-        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
+        .sidebar {
+            height: 100%;
+            width: 280px;
+            position: fixed;
+            z-index: 1002;
+            top: 0;
+            left: 0;
+            background-color: var(--card-bg);
+            overflow-x: hidden;
+            transition: 0.3s;
+            transform: translateX(-100%);
+            padding-top: 60px;
+            border-right: 2px solid var(--main-purple);
+        }
+        .sidebar.open {
+            transform: translateX(0);
+        }
+        .sidebar a {
+            padding: 10px 15px;
+            text-decoration: none;
+            font-size: 1.2rem;
+            color: var(--light-purple);
+            display: block;
+            transition: 0.2s;
+        }
+        .sidebar a:hover {
+            color: var(--text-color);
+            background-color: var(--main-purple);
+        }
+        .sidebar .closebtn {
+            position: absolute;
+            top: 0;
+            right: 25px;
+            font-size: 36px;
+            margin-left: 50px;
+            color: var(--text-color);
+        }
+        .sidebar-locked {
+            padding: 15px;
+            text-align: center;
+        }
+        .sidebar-locked p {
+            color: var(--placeholder-color);
+            margin-bottom: 1rem;
+        }
+        .sidebar-locked strong {
+            color: var(--light-purple);
+            text-transform: capitalize;
+        }
+        .sidebar-locked a {
+            background-color: #27ae60;
+            color: white;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1001;
+            display: none;
+        }
+        .overlay.show {
+            display: block;
+        }
+        .modal-backdrop {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1003; opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
+        }
         .modal-backdrop.show { opacity: 1; pointer-events: all; }
         .modal-content { background-color: var(--card-bg); padding: 2rem; border-radius: 15px; border: 2px solid var(--main-purple); box-shadow: 0 0 25px rgba(156, 60, 255, 0.7); width: 90%; max-width: 500px; transform: scale(0.9); transition: transform 0.3s ease; }
         .modal-backdrop.show .modal-content { transform: scale(1); }
@@ -196,20 +234,15 @@
         .login-btn:hover { background-color: var(--light-purple); color: var(--bg-color); }
         .close-btn { background-color: transparent; color: var(--light-text); border: 1px solid var(--light-text); }
         .close-btn:hover { background-color: var(--light-text); color: var(--dark-bg); }
-        
     </style>
 </head>
 <body>
     <div class="main-container">
         <header class="header">
-            <div class="menu-icon">&#9776;</div>
-            <div class="title-brand">PANEL GW</div>
-            <a id="adminBtn" href="/admin.html" class="admin-btn" style="display: none;"></a>
+            <div class="menu-icon" id="openSidebarBtn">&#9776;</div>
         </header>
-
         <img src="https://files.catbox.moe/oy87u3.jpg" alt="Logo" class="logo">
         <h1 class="title">Panel Generator</h1>
-
         <form id="createPanelForm">
             <input type="text" id="panelUsernameInput" placeholder="Masukkan Username Panel Anda" required autocomplete="off">
             <input type="password" id="panelPasswordInput" placeholder="Masukkan Password Panel Anda" required autocomplete="off">
@@ -217,16 +250,20 @@
             <select id="panelRamSelect" required>
                 <option value="" disabled selected>Select RAM</option>
             </select>
-            <button id="createPanelBtn" type="submit">Create Panel</button>
+            <button id="createPanelBtn" type="submit" class="form-button">Create Panel</button>
         </form>
-
         <p class="credit">Created By @rofikos</p>
-
         <footer class="footer">
-            <div class="status-display">STATUS: <span id="userRoleStatus"></span></div>
+            <div class="status-display">STATUS: <span id="userRoleStatus">Loading...</span></div>
             <button id="logoutBtn" class="logout-btn-footer">ACCOUNT / LOGOUT</button>
         </footer>
     </div>
+    
+    <nav id="sidebar" class="sidebar">
+        <a href="javascript:void(0)" class="closebtn" id="closeSidebarBtn">&times;</a>
+        <div id="sidebarContent"></div>
+    </nav>
+    <div id="overlay" class="overlay"></div>
     
     <div id="resultModal" class="modal-backdrop">
         <div class="modal-content">
@@ -239,31 +276,41 @@
             <div class="modal-footer"><a href="#" id="panelLoginUrlLink" target="_blank" class="login-btn">Login ke Panel</a><button id="closeModalBtn" class="close-btn">Tutup</button></div>
         </div>
     </div>
-    
+
     <script type="module">
         import { auth, db } from './firebase-config.js';
         import { onAuthStateChanged, signOut, getIdToken } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
         import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
         
+        const openSidebarBtn = document.getElementById('openSidebarBtn');
+        const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const sidebarContent = document.getElementById('sidebarContent');
+        const userRoleStatus = document.getElementById('userRoleStatus');
         const createPanelForm = document.getElementById('createPanelForm');
         const createPanelBtn = document.getElementById('createPanelBtn');
         const logoutBtn = document.getElementById('logoutBtn');
         const ramSelect = document.getElementById('panelRamSelect');
-        const adminBtn = document.getElementById('adminBtn');
-        const userRoleStatus = document.getElementById('userRoleStatus');
         const resultModal = document.getElementById('resultModal');
         const closeModalBtn = document.getElementById('closeModalBtn');
-        const menuIcon = document.querySelector('.menu-icon');
+
+        function openSidebar() {
+            sidebar.classList.add('open');
+            overlay.classList.add('show');
+        }
+
+        function closeSidebar() {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('show');
+        }
+
+        openSidebarBtn.onclick = openSidebar;
+        closeSidebarBtn.onclick = closeSidebar;
+        overlay.onclick = closeSidebar;
 
         let currentUser = null;
         let unsubscribe = null;
-        
-        // Simulasikan klik tombol admin/reseller panel
-        menuIcon.onclick = () => {
-            if (adminBtn.style.display === 'block') {
-                adminBtn.click();
-            }
-        };
 
         onAuthStateChanged(auth, (user) => {
             if (unsubscribe) unsubscribe();
@@ -273,50 +320,55 @@
                 unsubscribe = onSnapshot(userDocRef, (docSnap) => {
                     if (docSnap.exists()) {
                         const latestUserData = docSnap.data();
-                        if (latestUserData.banned && latestUserData.role !== 'owner') {
-                            alert('Akun Anda di-ban. Anda akan logout.');
+                        if (latestUserData.banned) {
+                            alert('Akun Anda di-ban.');
                             signOut(auth);
                         } else {
                             loadUserDataAndSetupForm(latestUserData);
                         }
-                    } else {
-                        signOut(auth);
-                    }
+                    } else { signOut(auth); }
                 });
-            } else {
-                window.location.replace('/login.html');
-            }
+            } else { window.location.replace('/login.html'); }
         });
 
         function loadUserDataAndSetupForm(userData) {
             userRoleStatus.textContent = userData.role.replace(/_/g, " ");
 
+            sidebarContent.innerHTML = '';
             if (userData.role === 'owner' || userData.role === 'reseller_apk') {
-                adminBtn.textContent = (userData.role === 'owner') ? 'Admin Panel' : 'Reseller APK Panel';
-                adminBtn.style.display = 'block';
+                const dashboardLink = document.createElement('a');
+                dashboardLink.href = '/admin.html';
+                dashboardLink.textContent = (userData.role === 'owner') ? 'Admin Dashboard' : 'Reseller APK Dashboard';
+                sidebarContent.appendChild(dashboardLink);
             } else {
-                adminBtn.style.display = 'none';
+                const lockedDiv = document.createElement('div');
+                lockedDiv.className = 'sidebar-locked';
+                lockedDiv.innerHTML = `
+                    <p>Status kamu <strong>${userData.role}</strong> tidak bisa menggunakan menu ini.</p>
+                    <p>Silahkan upgrade role ke Owner.</p>
+                    <a href="https://t.me/kipasambon" target="_blank">Hubungi @kipasambon</a>
+                `;
+                sidebarContent.appendChild(lockedDiv);
             }
+            const logoutLink = document.createElement('a');
+            logoutLink.href = '#';
+            logoutLink.textContent = 'Logout';
+            logoutLink.onclick = (e) => { e.preventDefault(); signOut(auth); };
+            sidebarContent.appendChild(logoutLink);
 
             ramSelect.innerHTML = '<option value="" disabled selected>Select RAM</option>';
             let ramOptions = [];
-            
             if (userData.role === 'owner' || userData.role === 'reseller' || userData.role === 'reseller_apk') {
-                for (let i = 1; i <= 10; i++) {
-                    ramOptions.push(`${i}gb`);
-                }
+                ramOptions = [...Array(10).keys()].map(i => `${i + 1}gb`);
                 ramOptions.push("unlimited");
-            } else { 
-                ramOptions = ["1gb", "2gb"];
-            }
-            
+            } else { ramOptions = ["1gb", "2gb"]; }
             ramOptions.forEach(ram => {
                 const option = document.createElement('option');
                 option.value = ram;
                 option.textContent = ram === 'unlimited' ? 'Unlimited RAM' : `${ram.replace('gb', '')} GB RAM`;
                 ramSelect.appendChild(option);
             });
-
+            
             if (userData.role === 'user' && userData.panelCount >= 1) {
                 Array.from(createPanelForm.elements).forEach(el => el.disabled = true);
             } else {
@@ -343,7 +395,6 @@
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.message || 'Terjadi kesalahan.');
-                
                 document.getElementById('panelLoginUrlText').textContent = data.loginUrl;
                 document.getElementById('panelLoginUrlLink').href = data.loginUrl;
                 document.getElementById('panelUsername').textContent = data.username;
@@ -353,7 +404,8 @@
             } catch (error) {
                 alert(`Gagal: ${error.message}`);
             } finally {
-                createPanelBtn.disabled = false; createPanelBtn.textContent = 'Create Panel';
+                createPanelBtn.disabled = false;
+                createPanelBtn.textContent = 'Create Panel';
             }
         });
 
