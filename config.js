@@ -1,3 +1,4 @@
+// config.js
 module.exports = {
   pterodactylConfig: {
     domain: "https://rofiksoleh.cloud-hosting.biz.id",
@@ -5,15 +6,16 @@ module.exports = {
     eggId: "15",
     nestId: "5",
     locationId: "1",
-    // DAFTAR USER PTERODACTYL YANG AMAN (TIDAK AKAN TERHAPUS SAAT CLEAR ALL)
-    // BISA DIISI DENGAN USER ID (angka) ATAU EMAIL PTERODACTYL
-    safeUsers: [1,2"] 
+    // CARA PENULISAN YANG BENAR
+    safeUsers: [
+        1, 
+        2, 
+        "admin@g.co", 
+        "kyanz@gmail.com"
+    ] 
   },
   githubConfig: {
-    // Username GitHub-mu
     username: "fyomell",
-    // Nama repo private yang tadi dibuat
     repoName: "reseller-data"
-    // Token sudah dipindah ke Vercel Environment Variables
   }
 };
