@@ -31,12 +31,12 @@ async function verifyUser(req, requiredRole = 'user') {
         throw new Error('User is banned.');
     }
     
-    // LOGIKA GITHUB DIHAPUS. Role sekarang 100% diambil dari Firestore.
     const userRole = userData.role || 'user';
     
     const roles = ['user', 'reseller', 'web_reseller', 'owner'];
     if (roles.indexOf(userRole) < roles.indexOf(requiredRole)) {
-        throw new Error(`Insufficient permissions. Required: ${requiredRole}, Your role: ${userRole}`);
+        // Pesan error diperjelas
+        throw new Error(`Akses ditolak. Role Anda '${userRole}', butuh role minimal '${requiredRole}'.`);
     }
     
     return { uid, userDoc, userData: { ...userData, role: userRole } };
