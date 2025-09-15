@@ -9,44 +9,33 @@
         :root { --dark-bg: #0c0c1e; --card-bg: #1a1a2e; --neon-cyan: #00fff2; --text-color: #e0e0e0; --light-text: #aaa; --btn-text: #0c0c1e; --danger-color: #f44336; --warning-color: #ffc107; }
         body { margin: 0; padding: 2rem; font-family: 'Poppins', sans-serif; background: var(--dark-bg); color: var(--text-color); }
         .container { max-width: 1200px; margin: auto; }
-        h1, h2, h3 { color: var(--neon-cyan); text-align: center; }
+        h1, h2 { color: var(--neon-cyan); text-align: center; }
         .home-link { display: block; text-align: center; margin-bottom: 2rem; color: var(--neon-cyan); }
         .dashboard { display: grid; grid-template-columns: 1fr; gap: 2rem; }
         @media (min-width: 1024px) { .dashboard { grid-template-columns: 1.2fr 1fr; } }
         .card { background-color: var(--card-bg); padding: 1.5rem; border-radius: 8px; }
-        .input-group { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1rem; }
-        input { width: 100%; box-sizing: border-box; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #334155; background-color: var(--dark-bg); color: var(--text-color); outline: none; }
-        button { cursor: pointer; border: none; padding: 0.75rem 1.5rem; border-radius: 5px; font-weight: bold; transition: all 0.2s; }
-        .btn-primary { background-color: var(--neon-cyan); color: var(--btn-text); }
-        .btn-danger { background-color: var(--danger-color); color: white; }
-        .btn-full-width { width: 100%; }
         table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; table-layout: fixed; }
         th, td { padding: 0.75rem; border-bottom: 1px solid #334155; text-align: left; word-wrap: break-word; }
         th { background-color: #131326; }
-        .actions button { padding: 0.3rem 0.6rem; font-size: 12px; margin-right: 5px; }
-        .clear-all-card { border: 2px solid var(--danger-color); margin-top: 2rem; }
+        .actions button { padding: 0.3rem 0.6rem; font-size: 12px; margin-right: 5px; border-radius: 4px; border: none; cursor: pointer; }
+        .btn-danger { background-color: var(--danger-color); color: white; }
         .btn-make-reseller-web { background-color: #17a2b8; color: white; }
+        .btn-make-reseller-panel { background-color: var(--neon-cyan); color: var(--btn-text); }
         .btn-make-user { background-color: var(--light-text); color: var(--btn-text); }
         .btn-ban { background-color: var(--danger-color); color: white; }
         .btn-unban { background-color: #4caf50; color: white; }
+        .clear-all-card { border: 2px solid var(--danger-color); margin-top: 2rem; }
+        .btn-full-width { width: 100%; padding: 0.75rem; font-size: 1rem; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Admin Dashboard</h1>
+        <p id="welcomeMessage" style="text-align: center; color: var(--light-text);"></p>
         <a href="/index.html" class="home-link">Kembali ke Home</a>
-        
         <div class="dashboard">
             <div class="card user-management">
                 <h2>User Management</h2>
-                <div class="card" style="background-color: #131326; margin-bottom: 2rem;">
-                    <h3>Buat User Baru</h3>
-                    <form id="createUserForm" class="input-group">
-                        <input type="text" id="newUsername" placeholder="Username Baru" required>
-                        <input type="password" id="newPassword" placeholder="Password Baru" required>
-                        <button type="submit" class="btn-primary">Buat Akun</button>
-                    </form>
-                </div>
                 <table id="usersTable">
                     <thead><tr><th>Username</th><th>Role</th><th>Status</th><th>Aksi</th></tr></thead>
                     <tbody><tr><td colspan="4" style="text-align:center;">Memuat data...</td></tr></tbody>
@@ -69,15 +58,25 @@
     </div>
 
     <script type="module">
-        import { auth } from './firebase-config.js';
+        import { auth, db } from './firebase-config.js';
         import { onAuthStateChanged, getIdToken } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
         
         let idToken = null;
+        let currentUserData = null;
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 idToken = await getIdToken(user);
-                // Kita akan verifikasi role di setiap panggilan API, jadi langsung load data
+                const userDocRef = doc(db, "users", user.uid);
+                const docSnap = await getDoc(userDocRef);
+                if (!docSnap.exists()) {
+                    alert('User tidak ditemukan di database.');
+                    return window.location.replace('/login.html');
+                }
+                
+                currentUserData = docSnap.data();
+                document.getElementById('welcomeMessage').textContent = `Login sebagai: ${currentUserData.username}`;
                 loadAllData();
             } else {
                 window.location.replace('/login.html');
@@ -87,21 +86,20 @@
         async function apiCall(endpoint, options = {}) {
             const defaultOptions = {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${idToken}`
-                }
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` }
             };
-            const response = await fetch(`/api/admin/${endpoint}`, { ...defaultOptions, ...options });
-            const result = await response.json();
-            if (!response.ok) {
-                if(response.status === 403) {
-                     alert('Akses Ditolak! Anda bukan Owner.');
-                     window.location.replace('/index.html');
+            try {
+                const response = await fetch(`/api/admin/${endpoint}`, { ...defaultOptions, ...options });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message);
+                return result;
+            } catch (error) {
+                // Tangani error JSON parse jika backend crash dan mengembalikan HTML
+                if (error instanceof SyntaxError) {
+                    throw new Error("Terjadi error di server (respons bukan JSON). Cek log Vercel.");
                 }
-                throw new Error(result.message);
+                throw error;
             }
-            return result;
         }
 
         function loadAllData() {
@@ -115,23 +113,26 @@
                 const users = await apiCall('getAllUsers');
                 tableBody.innerHTML = '';
                 users.forEach(user => {
-                    if (user.role === 'owner') return;
                     const isBanned = user.banned;
-                    const tr = document.createElement('tr');
                     
                     let actionButtons = '';
-                    if (user.role !== 'web_reseller') {
-                        actionButtons += `<button class="btn-make-reseller-web" onclick="window.setUserRole('${user.username}', 'web_reseller')">Jadi Reseller Web</button>`;
-                    }
-                    if (user.role === 'web_reseller') {
-                        actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Jadi User</button>`;
-                    }
-                    if (!isBanned) {
-                        actionButtons += `<button class="btn-ban" onclick="window.setBanStatus('${user.username}', true)">Ban</button>`;
-                    } else {
-                        actionButtons += `<button class="btn-unban" onclick="window.setBanStatus('${user.username}', false)">Unban</button>`;
+                    if (currentUserData.role === 'owner') {
+                         if (user.role !== 'web_reseller') actionButtons += `<button class="btn-make-reseller-web" onclick="window.setUserRole('${user.username}', 'web_reseller')">Jadi Reseller Web</button>`;
+                         if (user.role === 'web_reseller') actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Jadi User Biasa</button>`;
                     }
 
+                    if (user.role === 'user') {
+                        actionButtons += `<button class="btn-make-reseller-panel" onclick="window.setUserRole('${user.username}', 'reseller')">Jadi Reseller Panel</button>`;
+                    } else if (user.role === 'reseller') {
+                         actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Jadi User Biasa</button>`;
+                    }
+
+                    if (currentUserData.role === 'owner') {
+                        if (!isBanned) actionButtons += `<button class="btn-ban" onclick="window.setBanStatus('${user.username}', true)">Ban</button>`;
+                        else actionButtons += `<button class="btn-unban" onclick="window.setBanStatus('${user.username}', false)">Unban</button>`;
+                    }
+
+                    const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>${user.username}</td>
                         <td>${user.role}</td>
@@ -157,36 +158,19 @@
                         <td>${attr.id}</td>
                         <td>${attr.name}</td>
                         <td>${attr.relationships.user.attributes.username}</td>
-                        <td class="actions">
-                            <button class="btn-danger" onclick="window.deleteServer(${attr.id})">Hapus</button>
-                        </td>
+                        <td class="actions"><button class="btn-danger" onclick="window.deleteServer(${attr.id})">Hapus</button></td>
                     `;
                     tableBody.appendChild(tr);
                 });
             } catch (error) {
-                tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:red;">Gagal memuat server: ${error.message}</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:red;">${error.message}</td></tr>`;
             }
         }
 
-        document.getElementById('createUserForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = document.getElementById('newUsername').value;
-            const password = document.getElementById('newPassword').value;
-            try {
-                const result = await apiCall('createUser', {
-                    method: 'POST',
-                    body: JSON.stringify({ username, password })
-                });
-                alert(result.message);
-                e.target.reset();
-                loadAllUsers();
-            } catch (error) {
-                alert(`Error: ${error.message}`);
-            }
-        });
-
         async function updateUserState(username, state) {
-            if (!confirm(`Yakin ingin mengubah status user ${username}?`)) return;
+            let confirmationMessage = `Apakah Anda yakin ingin mengubah status user ${username}?`;
+            if (state.role === 'web_reseller' && !confirm("Ini akan memberikan akses ke file rahasia di GitHub. Yakin?")) return;
+            if (!confirm(confirmationMessage)) return;
             try {
                 const result = await apiCall('setUserState', {
                     method: 'POST',
@@ -198,7 +182,7 @@
                 alert(`Error: ${error.message}`);
             }
         }
-
+        
         window.setUserRole = (username, role) => updateUserState(username, { role });
         window.setBanStatus = (username, banned) => updateUserState(username, { banned });
 
