@@ -1,0 +1,43 @@
+// api/admin/clearAllServers.js
+const { pterodactylConfig } = require('../../config.js');
+const { verifyUser } = require('../_firebase-admin.js');
+const fetch = require('node-fetch');
+
+module.exports = async (req, res) => {
+    if (req.method !== 'POST') return res.status(405).json({ message: 'Method Not Allowed' });
+    try {
+        await verifyUser(req, 'owner'); // Hanya Owner
+        const { domain, apiKey, safeUsers } = pterodactylConfig;
+
+        // 1. Ambil semua server
+        const serverRes = await fetch(`${domain}/api/application/servers?include=user`, {
+            headers: { 'Authorization': `Bearer ${apiKey}` }
+        });
+        const serverData = await serverRes.json();
+        if (!serverRes.ok) throw new Error("Gagal mengambil daftar server.");
+
+        const serversToDelete = serverData.data.filter(server => {
+            const owner = server.attributes.relationships.user.attributes;
+            // Cek apakah ID atau email owner ada di daftar aman
+            return !safeUsers.includes(owner.id) && !safeUsers.includes(owner.email);
+        });
+
+        if (serversToDelete.length === 0) {
+            return res.status(200).json({ message: "Tidak ada server yang perlu dihapus." });
+        }
+
+        // 2. Hapus server satu per satu
+        for (const server of serversToDelete) {
+            await fetch(`${domain}/api/application/servers/${server.attributes.id}/force`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${apiKey}` }
+            });
+            // Kasih jeda sedikit biar API Pterodactyl gak overload
+            await new Promise(resolve => setTimeout(resolve, 200)); 
+        }
+
+        res.status(200).json({ message: `${serversToDelete.length} server berhasil di-clear.` });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
