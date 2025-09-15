@@ -33,9 +33,8 @@ async function verifyUser(req, requiredRole = 'user') {
     
     const userRole = userData.role || 'user';
     
-    const roles = ['user', 'reseller', 'web_reseller', 'owner'];
+    const roles = ['user', 'reseller', 'reseller_apk', 'owner'];
     if (roles.indexOf(userRole) < roles.indexOf(requiredRole)) {
-        // Pesan error diperjelas
         throw new Error(`Akses ditolak. Role Anda '${userRole}', butuh role minimal '${requiredRole}'.`);
     }
     
