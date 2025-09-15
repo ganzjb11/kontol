@@ -1,0 +1,12 @@
+{
+  "name": "pterodactyl-panel-creator",
+  "version": "1.0.0",
+  "description": "A web interface to create Pterodactyl panels with user roles.",
+  "main": "api/create-panel.js",
+  "dependencies": {
+    "firebase-admin": "^11.10.1",
+    "node-fetch": "^2.6.7"
+  },
+  "author": "",
+  "license": "ISC"
+}
