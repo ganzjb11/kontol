@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        :root { --dark-bg: #0c0c1e; --card-bg: #1a1a2e; --light-card-bg: #131326; --neon-cyan: #00fff2; --neon-shadow: rgba(0, 255, 242, 0.6); --text-color: #e0e0e0; --light-text: #aaa; --btn-text: #0c0c1e; }
+        body, html { margin: 0; padding: 0; font-family: 'Poppins', sans-serif; background: radial-gradient(circle at top left, var(--card-bg), var(--dark-bg)); color: var(--text-color); line-height: 1.6; height: 100%; display: flex; justify-content: center; align-items: center; }
+        .panel-creator { max-width: 600px; width: 90%; margin: 2rem auto; background-color: var(--card-bg); padding: 2rem; border-radius: 15px; border: 2px solid var(--neon-cyan); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6); text-align: center; position: relative; }
+        .top-buttons { position: absolute; top: 1rem; right: 1rem; display: flex; gap: 0.5rem; }
+        .logout-btn, .admin-btn { background: transparent; padding: 0.4rem 0.8rem; border-radius: 5px; cursor: pointer; transition: all 0.3s ease; text-decoration: none; font-size: 14px; }
+        .logout-btn { border: 1px solid var(--neon-cyan); color: var(--neon-cyan); }
+        .logout-btn:hover { background: var(--neon-cyan); color: var(--btn-text); }
+        .admin-btn { border: 1px solid #ffc107; color: #ffc107; }
+        .admin-btn:hover { background: #ffc107; color: var(--btn-text); }
+        h1 { color: var(--neon-cyan); text-shadow: 0 0 10px var(--neon-shadow); margin-bottom: 1rem; }
+        .input-group { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem; }
+        input, select { width: 100%; box-sizing: border-box; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--neon-cyan); background-color: var(--dark-bg); color: var(--text-color); outline: none; box-shadow: 0 0 5px var(--neon-shadow); }
+        button { width: 100%; padding: 0.75rem 1.5rem; border: none; background-color: var(--neon-cyan); color: var(--btn-text); border-radius: 0.5rem; font-weight: bold; cursor: pointer; transition: all 0.3s ease; }
+        button:hover:not(:disabled) { background-color: #00b8d4; box-shadow: 0 0 15px var(--neon-shadow); }
+        button:disabled, input:disabled, select:disabled { background-color: #2a2a4a; cursor: not-allowed; box-shadow: none; opacity: 0.6; }
+        .status-message { margin-top: 1rem; padding: 1rem; border-radius: 8px; text-align: center; display: none; }
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
+        .modal-backdrop.show { opacity: 1; pointer-events: all; }
+        .modal-content { background-color: var(--card-bg); padding: 2rem; border-radius: 15px; border: 2px solid var(--neon-cyan); box-shadow: 0 0 25px var(--neon-shadow); width: 90%; max-width: 500px; transform: scale(0.9); transition: transform 0.3s ease; }
+        .modal-backdrop.show .modal-content { transform: scale(1); }
+        .modal-header { text-align: center; border-bottom: 1px solid var(--neon-cyan); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+        .modal-header h2 { color: var(--neon-cyan); margin: 0; }
+        .modal-header p { color: var(--light-text); margin-top: 0.5rem; }
+        .modal-body .result-item { margin-bottom: 1rem; }
+        .modal-body label { display: block; margin-bottom: 0.25rem; color: var(--light-text); text-align: left; }
+        .result-with-copy { display: flex; align-items: center; gap: 0.5rem; background-color: var(--dark-bg); padding: 0.5rem; border-radius: 5px; }
+        .result-with-copy span { flex-grow: 1; word-break: break-all; color: var(--text-color); text-align: left; }
+        .copy-btn { background-color: var(--neon-cyan); color: var(--btn-text); border: none; padding: 0.5rem; border-radius: 5px; cursor: pointer; width: auto; }
+        .modal-footer { margin-top: 2rem; display: flex; flex-direction: column; gap: 0.75rem; }
+        .login-btn, .close-btn { width: 100%; padding: 0.75rem; border-radius: 0.5rem; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; transition: all 0.3s ease; }
+        .login-btn { background-color: var(--neon-cyan); color: var(--btn-text); border: none; }
+        .login-btn:hover { background-color: #00b8d4; box-shadow: 0 0 15px var(--neon-shadow); }
+        .close-btn { background-color: transparent; color: var(--light-text); border: 1px solid var(--light-text); }
+        .close-btn:hover { background-color: var(--light-text); color: var(--dark-bg); }
+    </style>
+</head>
+<body>
+    <main class="panel-creator">
+        <div class="top-buttons">
+             <a id="adminBtn" href="/admin.html" class="admin-btn" style="display: none;">Admin Panel</a>
+             <button id="logoutBtn" class="logout-btn">Logout</button>
+        </div>
+        <h1>Create Panel</h1>
+        <p id="welcomeMessage">Memuat data user...</p>
+        <form id="createPanelForm" class="input-group">
+            <input type="text" id="panelUsernameInput" placeholder="Masukkan Username Panel Anda" required autocomplete="off">
+            <input type="password" id="panelPasswordInput" placeholder="Masukkan Password Panel Anda" required autocomplete="off">
+            <input type="text" id="serverNameInput" placeholder="Nama Server (Opsional)" autocomplete="off">
+            <select id="panelRamSelect" required>
+                <option value="" disabled selected>Pilih RAM Server</option>
+            </select>
+            <button id="createPanelBtn" type="submit">Buat Panel</button>
+        </form>
+        <div id="panelStatusMessage" class="status-message"></div>
+    </main>
+    <div id="resultModal" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-header"><h2>✅ Panel Berhasil Dibuat!</h2><p>Berikut adalah detail akun panel Anda.</p></div>
+            <div class="modal-body">
+                <div class="result-item"><label>Username</label><div class="result-with-copy"><span id="panelUsername"></span><button class="copy-btn" onclick="copyResultText(this, 'panelUsername')"><i class="fas fa-copy"></i></button></div></div>
+                <div class="result-item"><label>Password</label><div class="result-with-copy"><span id="panelPassword"></span><button class="copy-btn" onclick="copyResultText(this, 'panelPassword')"><i class="fas fa-copy"></i></button></div></div>
+                <div class="result-item"><label>Login URL</label><div class="result-with-copy"><span id="panelLoginUrlText"></span><button class="copy-btn" onclick="copyResultText(this, 'panelLoginUrlText')"><i class="fas fa-copy"></i></button></div></div>
+            </div>
+            <div class="modal-footer"><a href="#" id="panelLoginUrlLink" target="_blank" class="login-btn">Login ke Panel</a><button id="closeModalBtn" class="close-btn">Tutup</button></div>
+        </div>
+    </div>
+    <script type="module">
+        import { auth, db } from './firebase-config.js';
+        import { onAuthStateChanged, signOut, getIdToken } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        import { doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+        
+        const createPanelForm = document.getElementById('createPanelForm');
+        const createPanelBtn = document.getElementById('createPanelBtn');
+        const panelStatusMessage = document.getElementById('panelStatusMessage');
+        const resultModal = document.getElementById('resultModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const ramSelect = document.getElementById('panelRamSelect');
+        const welcomeMessage = document.getElementById('welcomeMessage');
+        const adminBtn = document.getElementById('adminBtn');
+        let currentUser = null;
+        let currentUserData = null;
+        let unsubscribe = null;
+
+        onAuthStateChanged(auth, (user) => {
+            if (unsubscribe) unsubscribe();
+            if (user) {
+                currentUser = user;
+                const userDocRef = doc(db, "users", user.uid);
+                unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const latestUserData = docSnap.data();
+                        if (latestUserData.banned && latestUserData.role !== 'owner') {
+                            alert('Akun Anda baru saja di-ban oleh admin. Anda akan logout.');
+                            signOut(auth);
+                        } else {
+                            loadUserDataAndSetupForm(latestUserData);
+                        }
+                    } else {
+                        signOut(auth);
+                    }
+                });
+            } else {
+                window.location.replace('/login.html');
+            }
+        });
+
+        function loadUserDataAndSetupForm(userData) {
+            currentUserData = userData;
+            welcomeMessage.textContent = `Selamat datang, ${currentUserData.username}! (Role: ${currentUserData.role})`;
+            if (currentUserData.role === 'owner') {
+                adminBtn.style.display = 'block';
+            } else {
+                adminBtn.style.display = 'none';
+            }
+
+            ramSelect.innerHTML = '<option value="" disabled selected>Pilih RAM Server</option>';
+            let ramOptions = [];
+            
+            // INI BAGIAN YANG DIBENERIN
+            if (currentUserData.role === 'owner' || currentUserData.role === 'reseller') {
+                // Buat array dari 1 sampai 10, lalu tambahkan "unlimited"
+                for (let i = 1; i <= 10; i++) {
+                    ramOptions.push(`${i}gb`);
+                }
+                ramOptions.push("unlimited");
+            } else { // Role 'user'
+                ramOptions = ["1gb", "2gb"];
+            }
+            
+            ramOptions.forEach(ram => {
+                const option = document.createElement('option');
+                option.value = ram;
+                option.textContent = ram === 'unlimited' ? 'Unlimited RAM' : `${ram.replace('gb', '')} GB RAM`;
+                ramSelect.appendChild(option);
+            });
+
+            if (currentUserData.role === 'user' && currentUserData.panelCount >= 1) {
+                showStatusMessage('Anda telah mencapai limit pembuatan panel (1 panel per akun).', 'error');
+                Array.from(createPanelForm.elements).forEach(el => el.disabled = true);
+            } else {
+                 Array.from(createPanelForm.elements).forEach(el => el.disabled = false);
+            }
+        }
+
+        createPanelForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('panelUsernameInput').value.trim();
+            const password = document.getElementById('panelPasswordInput').value.trim();
+            const serverName = document.getElementById('serverNameInput').value.trim();
+            const ram = document.getElementById('panelRamSelect').value;
+            if (!username || !password || !ram) {
+                showStatusMessage('Username, Password, dan RAM wajib diisi.', 'error'); return;
+            }
+            createPanelBtn.disabled = true; createPanelBtn.textContent = 'Memproses...';
+            showStatusMessage('Sedang membuat panel, mohon tunggu...');
+            try {
+                const idToken = await getIdToken(currentUser);
+                const response = await fetch('/api/create-panel', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${idToken}`
+                    },
+                    body: JSON.stringify({ username, password, serverName, ram })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'Terjadi kesalahan.');
+                
+                document.getElementById('panelLoginUrlText').textContent = data.loginUrl;
+                document.getElementById('panelLoginUrlLink').href = data.loginUrl;
+                document.getElementById('panelUsername').textContent = data.username;
+                document.getElementById('panelPassword').textContent = data.password;
+                showModal();
+                createPanelForm.reset();
+            } catch (error) {
+                showStatusMessage(`❌ Gagal: ${error.message}`, 'error');
+            } finally {
+                createPanelBtn.disabled = false; createPanelBtn.textContent = 'Buat Panel';
+            }
+        });
+
+        logoutBtn.addEventListener('click', () => signOut(auth));
+
+        function showStatusMessage(message, type = 'info') {
+             panelStatusMessage.style.display = 'block';
+             panelStatusMessage.textContent = message;
+             panelStatusMessage.style.backgroundColor = type === 'error' ? 'rgba(244, 67, 54, 0.2)' : 'rgba(0, 255, 242, 0.2)';
+             panelStatusMessage.style.color = type === 'error' ? '#f44336' : 'var(--neon-cyan)';
+        }
+        function showModal() { resultModal.classList.add('show'); }
+        function hideModal() { resultModal.classList.remove('show'); }
+        window.copyResultText = function(button, elementId) {
+             const textElement = document.getElementById(elementId);
+             if (textElement && textElement.textContent) {
+                 navigator.clipboard.writeText(textElement.textContent).then(() => {
+                     const originalIcon = button.innerHTML;
+                     button.innerHTML = '✅';
+                     setTimeout(() => { button.innerHTML = originalIcon; }, 1500);
+                 });
+             }
+        }
+        closeModalBtn.addEventListener('click', hideModal);
+        resultModal.addEventListener('click', (e) => { if (e.target === resultModal) hideModal(); });
+    </script>
+</body>
+</html>
