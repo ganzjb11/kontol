@@ -10,8 +10,9 @@
         body { margin: 0; padding: 2rem; font-family: 'Poppins', sans-serif; background: var(--dark-bg); color: var(--text-color); }
         .container { max-width: 1200px; margin: auto; }
         h1, h2 { color: var(--neon-cyan); text-align: center; }
+        .home-link-container { text-align: center; }
         .home-link { 
-            display: inline-block;
+            display: inline-block; 
             text-align: center; 
             margin-bottom: 2rem; 
             color: var(--neon-cyan);
@@ -31,6 +32,7 @@
         .input-group { margin-bottom: 1rem; }
         input { width: 100%; box-sizing: border-box; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #334155; background-color: var(--dark-bg); color: var(--text-color); outline: none; }
         button { cursor: pointer; border: none; padding: 0.75rem 1.5rem; border-radius: 5px; font-weight: bold; transition: all 0.2s; }
+        button:disabled { background-color: #555; cursor: not-allowed; opacity: 0.7; }
         table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
         th, td { padding: 0.75rem; border-bottom: 1px solid #334155; text-align: left; }
         th { background-color: #131326; }
@@ -50,7 +52,7 @@
 <body>
     <div class="container">
         <h1 id="pageTitle">Memuat Dashboard...</h1>
-        <div class="home-link-container" style="text-align: center;">
+        <div class="home-link-container">
              <a href="/index.html" class="home-link">Kembali ke Home</a>
         </div>
         <div class="dashboard">
@@ -79,18 +81,24 @@
         </div>
     </div>
     <script type="module">
-        import { auth } from './firebase-config.js';
+        import { auth, db } from './firebase-config.js';
         import { onAuthStateChanged, getIdToken } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        import { collection, query, where, onSnapshot, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
         
         let idToken = null;
         let currentUserRole = null;
+        let currentUserUid = null;
+        let unsubscribeNotifications = null;
+        let pendingRequests = new Set();
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 idToken = await getIdToken(user);
+                currentUserUid = user.uid;
                 await loadUserRole();
                 setupDashboard();
             } else {
+                if(unsubscribeNotifications) unsubscribeNotifications();
                 window.location.replace('/login.html');
             }
         });
@@ -111,17 +119,52 @@
                 window.location.replace('/login.html');
             }
         }
-
+        
         function setupDashboard() {
             const pageTitle = document.getElementById('pageTitle');
             if (currentUserRole === 'owner') {
                 pageTitle.textContent = 'Admin Dashboard';
                 document.getElementById('serverManagementCard').classList.remove('hidden');
                 loadAllServers();
-            } else if (currentUserRole === 'web_reseller') {
-                pageTitle.textContent = 'Reseller Dashboard';
+            } else if (currentUserRole === 'reseller_apk') {
+                pageTitle.textContent = 'Reseller APK Dashboard';
+                setupRealtimeNotifications();
             }
-            loadAllUsers();
+            loadPendingRequests().then(loadAllUsers);
+        }
+
+        function setupRealtimeNotifications() {
+            if (unsubscribeNotifications) unsubscribeNotifications();
+            const q = query(
+                collection(db, "roleChangeRequests"),
+                where("initiatorUid", "==", currentUserUid)
+            );
+            unsubscribeNotifications = onSnapshot(q, (snapshot) => {
+                let needsReload = false;
+                snapshot.docChanges().forEach((change) => {
+                    const data = change.doc.data();
+                    if (data.status !== 'pending' && !data.notified) {
+                        const statusText = data.status === 'approved' ? 'DISETUJUI' : 'DITOLAK';
+                        alert(`PEMBERITAHUAN:\nPermintaan Anda untuk mengubah role ${data.targetUsername} telah ${statusText} oleh Owner.`);
+                        const docRef = doc(db, "roleChangeRequests", change.doc.id);
+                        updateDoc(docRef, { notified: true });
+                        needsReload = true;
+                    }
+                });
+                if (needsReload) loadPendingRequests().then(loadAllUsers);
+            });
+        }
+
+        async function loadPendingRequests() {
+            pendingRequests.clear();
+            if (currentUserRole === 'reseller_apk') {
+                const q = query(collection(db, "roleChangeRequests"), where("status", "==", "pending"), where("initiatorUid", "==", currentUserUid));
+                const querySnapshot = await getDocs(q);
+                querySnapshot.forEach(doc => {
+                    const data = doc.data();
+                    pendingRequests.add(`${data.targetUid}:${data.newRole}`);
+                });
+            }
         }
 
         async function apiCall(endpoint, options = {}) {
@@ -158,21 +201,29 @@
                     if (currentUserRole === 'owner') {
                         if (user.role === 'user') {
                             actionButtons += `<button class="btn-make-reseller" onclick="window.setUserRole('${user.username}', 'reseller')">Jadi Reseller Panel</button>`;
-                            actionButtons += `<button class="btn-make-reseller-web" onclick="window.setUserRole('${user.username}', 'web_reseller')">Jadi Reseller Web</button>`;
+                            actionButtons += `<button class="btn-make-reseller-web" onclick="window.setUserRole('${user.username}', 'reseller_apk')">Jadi Reseller APK</button>`;
                         } else if (user.role === 'reseller') {
                             actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Cabut Reseller Panel</button>`;
-                            actionButtons += `<button class="btn-make-reseller-web" onclick="window.setUserRole('${user.username}', 'web_reseller')">Jadi Reseller Web</button>`;
-                        } else if (user.role === 'web_reseller') {
-                            actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Cabut Reseller Web</button>`;
+                            actionButtons += `<button class="btn-make-reseller-web" onclick="window.setUserRole('${user.username}', 'reseller_apk')">Jadi Reseller APK</button>`;
+                        } else if (user.role === 'reseller_apk') {
+                            actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Cabut Reseller APK</button>`;
                         }
-                        
                         actionButtons += `<button class="${isBanned ? 'btn-unban' : 'btn-ban'}" onclick="window.setBanStatus('${user.username}', ${!isBanned})">${isBanned ? 'Unban' : 'Ban'}</button>`;
-
-                    } else if (currentUserRole === 'web_reseller') {
+                    } else if (currentUserRole === 'reseller_apk') {
                         if (user.role === 'user') {
-                            actionButtons += `<button class="btn-make-reseller" onclick="window.setUserRole('${user.username}', 'reseller')">Jadi Reseller Panel</button>`;
+                            const isPending = pendingRequests.has(`${user.id}:reseller`);
+                            if(isPending) {
+                                actionButtons += `<button class="btn-make-reseller" disabled>Menunggu Konfirmasi...</button>`;
+                            } else {
+                                actionButtons += `<button class="btn-make-reseller" onclick="window.setUserRole('${user.username}', 'reseller')">Jadi Reseller Panel</button>`;
+                            }
                         } else if (user.role === 'reseller') {
-                            actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Cabut Reseller Panel</button>`;
+                            const isPending = pendingRequests.has(`${user.id}:user`);
+                             if(isPending) {
+                                actionButtons += `<button class="btn-make-user" disabled>Menunggu Konfirmasi...</button>`;
+                             } else {
+                                actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Cabut Reseller Panel</button>`;
+                             }
                         }
                     }
                     
@@ -237,14 +288,26 @@
                     body: JSON.stringify({ username, ...state })
                 });
                 alert(result.message);
+                
+                // Jika Reseller APK yang request, jangan reload user, tapi reload pending request
+                if (currentUserRole === 'reseller_apk') {
+                    await loadPendingRequests();
+                }
                 loadAllUsers();
+
             } catch (error) {
                 alert(`Error: ${error.message}`);
             }
         }
         
         window.setUserRole = (username, role) => {
-            const actionText = (role === 'user') ? `mencabut role dari ${username}` : `memberikan role ${role} kepada ${username}`;
+            let actionText = `mengubah role untuk ${username}`;
+            if(currentUserRole === 'owner') {
+               actionText = (role === 'user' || (role === 'reseller' && username.role === 'reseller_apk') ) ? `mencabut role dari ${username}` : `memberikan role ${role} kepada ${username}`;
+            } else {
+                actionText = role === 'reseller' ? `menjadikan ${username} Reseller Panel` : `mencabut role Reseller Panel dari ${username}`;
+            }
+
             if (confirm(`Yakin ingin ${actionText}?`)) {
                 updateUserState(username, { role });
             }
