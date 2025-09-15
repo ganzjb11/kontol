@@ -1,22 +1,25 @@
 // api/admin/getAllServers.js
-const { pterodactylConfig } = require('../config.js');
-const { verifyUser } = require('../_firebase-admin.js');
 const fetch = require('node-fetch');
 
 module.exports = async (req, res) => {
+    // Log ini PASTI akan muncul di Vercel setiap kali fungsi dipanggil
+    console.log('--- FUNGSI /api/admin/getAllServers DIPANGGIL ---');
+
     try {
+        // Kita pindahkan require ke dalam try...catch agar errornya tertangkap
+        const { pterodactylConfig } = require('../../config.js');
+        const { verifyUser } = require('../_firebase-admin.js');
+
         await verifyUser(req, 'owner'); 
         const { domain, apiKey } = pterodactylConfig;
 
-        // TAMBAHKAN BARIS INI UNTUK DEBUGGING
-        console.log('Mencoba mengambil server dari domain:', domain);
-        console.log('Menggunakan API Key (beberapa karakter awal):', apiKey ? apiKey.substring(0, 8) + '...' : 'API KEY KOSONG/UNDEFINED!');
+        console.log('Config berhasil dimuat. Domain:', domain);
+        console.log('API Key ditemukan (beberapa karakter awal):', apiKey ? apiKey.substring(0, 8) + '...' : 'API KEY KOSONG!');
         
         const response = await fetch(`${domain}/api/application/servers?include=user`, {
             headers: { 'Authorization': `Bearer ${apiKey}` }
         });
 
-        // Jika response tidak ok, kita log juga statusnya
         if (!response.ok) {
             console.error('Pterodactyl merespon dengan status:', response.status, response.statusText);
             const errorText = await response.text();
@@ -28,7 +31,8 @@ module.exports = async (req, res) => {
         res.status(200).json(data.data);
 
     } catch (error) {
-        console.error('Terjadi CRASH di fungsi getAllServers:', error); // Log error yang sebenarnya di sini
-        res.status(500).json({ message: error.message });
+        // Jika ada error (termasuk path salah), akan di-log di sini
+        console.error('--- TERJADI CRASH FATAL DI FUNGSI ---', error);
+        res.status(500).json({ message: 'Internal Server Error. Cek log Vercel untuk detail.' });
     }
 };
