@@ -11,21 +11,8 @@
         .container { max-width: 1200px; margin: auto; }
         h1, h2 { color: var(--neon-cyan); text-align: center; }
         .home-link-container { text-align: center; }
-        .home-link { 
-            display: inline-block; 
-            text-align: center; 
-            margin-bottom: 2rem; 
-            color: var(--neon-cyan);
-            border: 1px solid var(--neon-cyan);
-            padding: 0.5rem 1rem;
-            border-radius: 5px;
-            text-decoration: none;
-            transition: all 0.2s ease;
-        }
-        .home-link:hover {
-            background-color: var(--neon-cyan);
-            color: var(--btn-text);
-        }
+        .home-link { display: inline-block; text-align: center; margin-bottom: 2rem; color: var(--neon-cyan); border: 1px solid var(--neon-cyan); padding: 0.5rem 1rem; border-radius: 5px; text-decoration: none; transition: all 0.2s ease; }
+        .home-link:hover { background-color: var(--neon-cyan); color: var(--btn-text); }
         .dashboard { display: grid; grid-template-columns: 1fr; gap: 2rem; }
         @media (min-width: 1024px) { .dashboard { grid-template-columns: 1.2fr 1fr; } }
         .card { background-color: var(--card-bg); padding: 1.5rem; border-radius: 8px; }
@@ -47,6 +34,20 @@
         .btn-danger { background-color: var(--danger-color); color: white; }
         .btn-full-width { width: 100%; }
         .hidden { display: none; }
+
+        /* --- STYLE UNTUK MODAL CUSTOM --- */
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
+        .modal-backdrop.show { opacity: 1; pointer-events: all; }
+        .modal-content { background-color: var(--card-bg); padding: 1.5rem; border-radius: 15px; border: 2px solid var(--neon-cyan); box-shadow: 0 0 25px var(--neon-shadow); width: 90%; max-width: 400px; transform: scale(0.9); transition: transform 0.3s ease; }
+        .modal-backdrop.show .modal-content { transform: scale(1); }
+        .modal-header h3 { color: var(--neon-cyan); margin: 0; margin-bottom: 0.5rem; text-align: left; }
+        .modal-body p { color: var(--text-color); margin: 1rem 0; text-align: left; line-height: 1.5; }
+        .modal-body input { margin-top: 0.5rem; }
+        .modal-footer { margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem; }
+        .modal-footer button { padding: 0.5rem 1rem; font-size: 14px; }
+        .btn-modal-cancel { background-color: var(--light-text); color: var(--btn-text); }
+        .btn-modal-confirm { background-color: var(--neon-cyan); color: var(--btn-text); }
+        .btn-modal-confirm.danger { background-color: var(--danger-color); color: white; }
     </style>
 </head>
 <body>
@@ -80,11 +81,109 @@
             </div>
         </div>
     </div>
+
+    <div class="modal-backdrop" id="customModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Judul Modal</h3>
+            </div>
+            <div class="modal-body">
+                <p id="modalMessage">Pesan di sini.</p>
+                <div id="modalPrompt" class="hidden">
+                    <input type="text" id="modalInput" autocomplete="off">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="modalCancelBtn" class="btn-modal-cancel">Batal</button>
+                <button id="modalConfirmBtn" class="btn-modal-confirm">OKE</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { auth, db } from './firebase-config.js';
         import { onAuthStateChanged, getIdToken } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
         import { collection, query, where, onSnapshot, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
         
+        // --- LOGIKA BARU UNTUK MODAL CUSTOM ---
+        const customModal = document.getElementById('customModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+        const modalCancelBtn = document.getElementById('modalCancelBtn');
+        const modalPrompt = document.getElementById('modalPrompt');
+        const modalInput = document.getElementById('modalInput');
+
+        function showCustomAlert(message, title = "Informasi") {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            modalCancelBtn.classList.add('hidden');
+            modalConfirmBtn.textContent = 'OKE';
+            modalConfirmBtn.className = 'btn-modal-confirm';
+            modalPrompt.classList.add('hidden');
+            customModal.classList.add('show');
+
+            return new Promise(resolve => {
+                modalConfirmBtn.onclick = () => {
+                    customModal.classList.remove('show');
+                    resolve(true);
+                };
+            });
+        }
+
+        function showCustomConfirm(title, message, options = {}) {
+            modalTitle.textContent = title;
+            modalMessage.innerHTML = message; // Use innerHTML to allow line breaks
+            modalCancelBtn.classList.remove('hidden');
+            modalConfirmBtn.textContent = options.confirmText || 'OKE';
+            modalConfirmBtn.className = 'btn-modal-confirm';
+            if (options.isDanger) {
+                modalConfirmBtn.classList.add('danger');
+            }
+            modalPrompt.classList.add('hidden');
+            customModal.classList.add('show');
+            
+            return new Promise(resolve => {
+                modalConfirmBtn.onclick = () => {
+                    customModal.classList.remove('show');
+                    resolve(true);
+                };
+                modalCancelBtn.onclick = () => {
+                    customModal.classList.remove('show');
+                    resolve(false);
+                };
+            });
+        }
+
+        function showCustomPrompt(title, message, validationText) {
+            modalTitle.textContent = title;
+            modalMessage.innerHTML = message;
+            modalCancelBtn.classList.remove('hidden');
+            modalConfirmBtn.textContent = 'Konfirmasi';
+            modalConfirmBtn.className = 'btn-modal-confirm danger';
+            modalPrompt.classList.remove('hidden');
+            modalInput.value = '';
+            customModal.classList.add('show');
+            
+            return new Promise(resolve => {
+                modalConfirmBtn.onclick = () => {
+                    if (modalInput.value === validationText) {
+                        customModal.classList.remove('show');
+                        resolve(true);
+                    } else {
+                        modalInput.style.border = '1px solid var(--danger-color)';
+                        setTimeout(() => { modalInput.style.border = '1px solid #334155'; }, 1500);
+                        resolve(false);
+                    }
+                };
+                modalCancelBtn.onclick = () => {
+                    customModal.classList.remove('show');
+                    resolve(null); // Null for cancel
+                };
+            });
+        }
+
+
         let idToken = null;
         let currentUserRole = null;
         let currentUserUid = null;
@@ -115,8 +214,9 @@
                 const data = await response.json();
                 currentUserRole = data.role;
             } catch (error) {
-                alert(`Error: ${error.message}. Anda akan dialihkan ke halaman login.`);
-                window.location.replace('/login.html');
+                showCustomAlert(error.message, "Error").then(() => {
+                    window.location.replace('/login.html');
+                });
             }
         }
         
@@ -135,17 +235,14 @@
 
         function setupRealtimeNotifications() {
             if (unsubscribeNotifications) unsubscribeNotifications();
-            const q = query(
-                collection(db, "roleChangeRequests"),
-                where("initiatorUid", "==", currentUserUid)
-            );
+            const q = query(collection(db, "roleChangeRequests"), where("initiatorUid", "==", currentUserUid));
             unsubscribeNotifications = onSnapshot(q, (snapshot) => {
                 let needsReload = false;
                 snapshot.docChanges().forEach((change) => {
                     const data = change.doc.data();
                     if (data.status !== 'pending' && !data.notified) {
                         const statusText = data.status === 'approved' ? 'DISETUJUI' : 'DITOLAK';
-                        alert(`PEMBERITAHUAN:\nPermintaan Anda untuk mengubah role ${data.targetUsername} telah ${statusText} oleh Owner.`);
+                        showCustomAlert(`Permintaan Anda untuk mengubah role ${data.targetUsername} telah ${statusText} oleh Owner.`, "Pemberitahuan");
                         const docRef = doc(db, "roleChangeRequests", change.doc.id);
                         updateDoc(docRef, { notified: true });
                         needsReload = true;
@@ -168,10 +265,7 @@
         }
 
         async function apiCall(endpoint, options = {}) {
-            const defaultOptions = {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` }
-            };
+            const defaultOptions = { method: 'GET', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` } };
             const response = await fetch(`/api/${endpoint}`, { ...defaultOptions, ...options });
             if (!response.ok) {
                 const errorText = await response.text();
@@ -210,17 +304,18 @@
                         }
                         actionButtons += `<button class="${isBanned ? 'btn-unban' : 'btn-ban'}" onclick="window.setBanStatus('${user.username}', ${!isBanned})">${isBanned ? 'Unban' : 'Ban'}</button>`;
                     } else if (currentUserRole === 'reseller_apk') {
+                        const isPendingReseller = pendingRequests.has(`${user.id}:reseller`);
+                        const isPendingUser = pendingRequests.has(`${user.id}:user`);
+                        
                         if (user.role === 'user') {
-                            const isPending = pendingRequests.has(`${user.id}:reseller`);
-                            if(isPending) {
+                             if(isPendingReseller) {
                                 actionButtons += `<button class="btn-make-reseller" disabled>Menunggu Konfirmasi...</button>`;
-                            } else {
+                             } else {
                                 actionButtons += `<button class="btn-make-reseller" onclick="window.setUserRole('${user.username}', 'reseller')">Jadi Reseller Panel</button>`;
-                            }
+                             }
                         } else if (user.role === 'reseller') {
-                            const isPending = pendingRequests.has(`${user.id}:user`);
-                             if(isPending) {
-                                actionButtons += `<button class="btn-make-user" disabled>Menunggu Konfirmasi...</button>`;
+                            if(isPendingUser) {
+                                actionButtons += `<button class="btn-make-user" disabled>Menunggu Konfirmasi</button>`;
                              } else {
                                 actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Cabut Reseller Panel</button>`;
                              }
@@ -248,14 +343,7 @@
                 servers.forEach(server => {
                     const attr = server.attributes;
                     const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${attr.id}</td>
-                        <td>${attr.name}</td>
-                        <td>${attr.relationships.user.attributes.username}</td>
-                        <td class="actions">
-                            <button class="btn-danger" onclick="window.deleteServer(${attr.id})">Hapus</button>
-                        </td>
-                    `;
+                    tr.innerHTML = `<td>${attr.id}</td><td>${attr.name}</td><td>${attr.relationships.user.attributes.username}</td><td class="actions"><button class="btn-danger" onclick="window.deleteServer(${attr.id})">Hapus</button></td>`;
                     tableBody.appendChild(tr);
                 });
             } catch (error) {
@@ -271,8 +359,7 @@
             for (let i = 1; i < trs.length; i++) {
                 const td = trs[i].getElementsByTagName('td')[0];
                 if (td) {
-                    const txtValue = td.textContent || td.innerText;
-                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                    if (td.textContent.toLowerCase().indexOf(filter) > -1) {
                         trs[i].style.display = "";
                     } else {
                         trs[i].style.display = "none";
@@ -287,67 +374,68 @@
                     method: 'POST',
                     body: JSON.stringify({ username, ...state })
                 });
-                alert(result.message);
-                
-                // Jika Reseller APK yang request, jangan reload user, tapi reload pending request
+                await showCustomAlert(result.message);
                 if (currentUserRole === 'reseller_apk') {
                     await loadPendingRequests();
                 }
                 loadAllUsers();
-
             } catch (error) {
-                alert(`Error: ${error.message}`);
+                await showCustomAlert(`Error: ${error.message}`, 'Gagal');
             }
         }
         
-        window.setUserRole = (username, role) => {
-            let actionText = `mengubah role untuk ${username}`;
-            if(currentUserRole === 'owner') {
-               actionText = (role === 'user' || (role === 'reseller' && username.role === 'reseller_apk') ) ? `mencabut role dari ${username}` : `memberikan role ${role} kepada ${username}`;
-            } else {
-                actionText = role === 'reseller' ? `menjadikan ${username} Reseller Panel` : `mencabut role Reseller Panel dari ${username}`;
-            }
-
-            if (confirm(`Yakin ingin ${actionText}?`)) {
+        window.setUserRole = async (username, role) => {
+            const actionText = (role === 'user' || (role === 'reseller' && username.role === 'reseller_apk') ) ? `mencabut role dari ${username}` : `memberikan role ${role} kepada ${username}`;
+            const confirmed = await showCustomConfirm('Konfirmasi Aksi', `Yakin ingin ${actionText}?`);
+            if (confirmed) {
                 updateUserState(username, { role });
             }
         };
 
-        window.setBanStatus = (username, banned) => {
-            if (confirm(`Yakin ingin ${banned ? 'BAN' : 'UNBAN'} user ${username}?`)) {
+        window.setBanStatus = async (username, banned) => {
+            const confirmed = await showCustomConfirm(banned ? 'Konfirmasi Ban' : 'Konfirmasi Unban', `Yakin ingin ${banned ? 'BAN' : 'UNBAN'} user ${username}?`, { isDanger: banned, confirmText: banned ? 'Ban' : 'Unban' });
+            if (confirmed) {
                 updateUserState(username, { banned });
             }
         };
 
         window.deleteServer = async function(serverId) {
-            if (!confirm(`Yakin ingin menghapus server ID ${serverId} secara permanen?`)) return;
+            const confirmed = await showCustomConfirm('Konfirmasi Hapus', `Yakin ingin menghapus server ID ${serverId} secara permanen?`, { isDanger: true, confirmText: 'Hapus' });
+            if (!confirmed) return;
             try {
                 const result = await apiCall('admin/deleteServer', {
                     method: 'POST',
                     body: JSON.stringify({ serverId })
                 });
-                alert(result.message);
+                await showCustomAlert(result.message);
                 loadAllServers();
             } catch (error) {
-                alert(`Error: ${error.message}`);
+                await showCustomAlert(error.message, 'Error');
             }
         }
 
         window.clearAllServers = async function() {
-            if (!confirm(`PERINGATAN!!!\nIni akan menghapus SEMUA server kecuali punya admin. Aksi ini tidak bisa dibatalkan.\n\nLanjutkan?`)) return;
+            const warningMessage = `<b>PERINGATAN!!!</b><br>Ini akan menghapus SEMUA server kecuali punya admin. Aksi ini tidak bisa dibatalkan.<br><br>Lanjutkan?`;
+            const confirmed = await showCustomConfirm('Konfirmasi Aksi Berbahaya', warningMessage, { isDanger: true, confirmText: 'Lanjutkan' });
+            if (!confirmed) return;
+            
             const confirmationText = "HAPUS SEMUA";
-            if (prompt(`Untuk konfirmasi, ketik "${confirmationText}" di bawah ini:`) !== confirmationText) {
-                return alert('Konfirmasi dibatalkan.');
+            const promptConfirmed = await showCustomPrompt('Konfirmasi Final', `Untuk melanjutkan, ketik "<b style='color: var(--neon-cyan)'>${confirmationText}</b>" di bawah ini:`, confirmationText);
+
+            if (!promptConfirmed) {
+                if(promptConfirmed === false) showCustomAlert('Konfirmasi salah. Aksi dibatalkan.', 'Gagal');
+                return;
             }
+
             const button = document.querySelector('.clear-all-card button');
             try {
                 button.disabled = true;
                 button.textContent = "Menghapus...";
                 const result = await apiCall('admin/clearAllServers', { method: 'POST' });
-                alert(result.message);
+                await showCustomAlert(result.message);
                 loadAllServers();
             } catch (error) {
-                alert(`Error: ${error.message}`);
+                await showCustomAlert(error.message, 'Error');
             } finally {
                 button.disabled = false;
                 button.textContent = "Clear All Servers";
