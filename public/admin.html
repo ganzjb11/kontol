@@ -23,7 +23,7 @@
         table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; table-layout: fixed; }
         th, td { padding: 0.75rem; border-bottom: 1px solid #334155; text-align: left; word-wrap: break-word; }
         th { background-color: #131326; }
-        .actions button { padding: 0.3rem 0.6rem; font-size: 12px; margin-right: 5px; margin-top: 5px; } /* Tambah margin-top */
+        .actions button { padding: 0.3rem 0.6rem; font-size: 12px; margin-right: 5px; margin-top: 5px; }
         .clear-all-card { border: 2px solid var(--danger-color); margin-top: 2rem; }
         .btn-make-reseller { background-color: var(--warning-color); color: var(--btn-text); }
         .btn-make-reseller-web { background-color: var(--info-color); color: white; }
@@ -111,13 +111,12 @@
                     
                     let actionButtons = '';
 
-                    // === LOGIKA TOMBOL DIPERBARUI DI SINI ===
                     if (user.role === 'user') {
                         actionButtons += `<button class="btn-make-reseller" onclick="window.setUserRole('${user.username}', 'reseller')">Jadi Reseller Panel</button>`;
-                        actionButtons += `<button class="btn-make-reseller-web" onclick="window.makeWebReseller('${user.username}')">Jadi Reseller Web</button>`;
+                        actionButtons += `<button class="btn-make-reseller-web" onclick="window.setUserRole('${user.username}', 'web_reseller')">Jadi Reseller Web</button>`;
                     } else if (user.role === 'reseller') {
                         actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Jadi User</button>`;
-                        actionButtons += `<button class="btn-make-reseller-web" onclick="window.makeWebReseller('${user.username}')">Jadi Reseller Web</button>`;
+                        actionButtons += `<button class="btn-make-reseller-web" onclick="window.setUserRole('${user.username}', 'web_reseller')">Jadi Reseller Web</button>`;
                     } else if (user.role === 'web_reseller') {
                         actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Jadi User</button>`;
                     }
@@ -170,8 +169,8 @@
             const table = document.getElementById('usersTable');
             const tr = table.getElementsByTagName('tr');
 
-            for (let i = 1; i < tr.length; i++) { // Mulai dari 1 untuk skip header
-                const td = tr[i].getElementsByTagName('td')[0]; // Kolom username
+            for (let i = 1; i < tr.length; i++) {
+                const td = tr[i].getElementsByTagName('td')[0];
                 if (td) {
                     const txtValue = td.textContent || td.innerText;
                     if (txtValue.toLowerCase().indexOf(filter) > -1) {
@@ -184,7 +183,6 @@
         }
 
         async function updateUserState(username, state) {
-            // Konfirmasi di-handle di fungsi masing-masing
             try {
                 const result = await apiCall('setUserState', {
                     method: 'POST',
@@ -197,18 +195,6 @@
             }
         }
         
-        // === FUNGSI BARU UNTUK JADIKAN RESELLER WEB ===
-        window.makeWebReseller = async function(username) {
-            const password = prompt(`Password ini akan disimpan di file GitHub untuk user '${username}'.\n\nMasukkan password baru untuk Reseller Web:`);
-            if (!password) {
-                alert('Aksi dibatalkan. Password tidak boleh kosong.');
-                return;
-            }
-            if (confirm(`Yakin ingin mengangkat ${username} menjadi Reseller Web?`)) {
-                await updateUserState(username, { role: 'web_reseller', password: password });
-            }
-        }
-
         window.setUserRole = (username, role) => {
             if (confirm(`Yakin ingin mengubah role ${username} menjadi ${role}?`)) {
                 updateUserState(username, { role });
