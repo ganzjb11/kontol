@@ -139,28 +139,27 @@
                     const isBanned = user.banned;
                     let actionButtons = '';
                     
+                    // --- LOGIKA PEMBUATAN TOMBOL DIPERBAIKI TOTAL DI SINI ---
                     if (currentUserRole === 'owner') {
-                        // --- Tombol Toggle untuk Owner ---
-                        if (user.role === 'user' || user.role === 'reseller') {
-                            const isReseller = user.role === 'reseller';
-                            actionButtons += `<button class="${isReseller ? 'btn-make-user' : 'btn-make-reseller'}" onclick="window.setUserRole('${user.username}', '${isReseller ? 'user' : 'reseller'}')">${isReseller ? 'Cabut Reseller Panel' : 'Jadi Reseller Panel'}</button>`;
-                        }
-                        if (user.role !== 'web_reseller') {
-                             actionButtons += `<button class="btn-make-reseller-web" onclick="window.setUserRole('${user.username}', 'web_reseller')">Jadi Reseller Web</button>`;
-                        } else {
+                        if (user.role === 'user') {
+                            actionButtons += `<button class="btn-make-reseller" onclick="window.setUserRole('${user.username}', 'reseller')">Jadi Reseller Panel</button>`;
+                            actionButtons += `<button class="btn-make-reseller-web" onclick="window.setUserRole('${user.username}', 'web_reseller')">Jadi Reseller Web</button>`;
+                        } else if (user.role === 'reseller') {
+                            actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Cabut Reseller Panel</button>`;
+                            actionButtons += `<button class="btn-make-reseller-web" onclick="window.setUserRole('${user.username}', 'web_reseller')">Jadi Reseller Web</button>`;
+                        } else if (user.role === 'web_reseller') {
                             actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Cabut Reseller Web</button>`;
                         }
                         
-                        // --- Tombol Ban/Unban ---
-                        const isBanned = user.banned;
                         actionButtons += `<button class="${isBanned ? 'btn-unban' : 'btn-ban'}" onclick="window.setBanStatus('${user.username}', ${!isBanned})">${isBanned ? 'Unban' : 'Ban'}</button>`;
 
                     } else if (currentUserRole === 'web_reseller') {
-                        // --- Tombol Toggle untuk Web Reseller ---
-                        if (user.role === 'user' || user.role === 'reseller') {
-                             const isReseller = user.role === 'reseller';
-                            actionButtons += `<button class="${isReseller ? 'btn-make-user' : 'btn-make-reseller'}" onclick="window.setUserRole('${user.username}', '${isReseller ? 'user' : 'reseller'}')">${isReseller ? 'Cabut Reseller Panel' : 'Jadi Reseller Panel'}</button>`;
+                        if (user.role === 'user') {
+                            actionButtons += `<button class="btn-make-reseller" onclick="window.setUserRole('${user.username}', 'reseller')">Jadi Reseller Panel</button>`;
+                        } else if (user.role === 'reseller') {
+                            actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Cabut Reseller Panel</button>`;
                         }
+                        // Untuk web_reseller, tidak ada tombol aksi untuk user lain yang rolenya web_reseller.
                     }
                     
                     tr.innerHTML = `
@@ -231,8 +230,8 @@
         }
         
         window.setUserRole = (username, role) => {
-            const action = role === 'user' ? 'mencabut role dari' : 'memberikan role kepada';
-            if (confirm(`Yakin ingin ${action} ${username}?`)) {
+            const action = (role === 'user' || role === 'reseller') ? 'mengubah role' : 'memberikan role';
+            if (confirm(`Yakin ingin ${action} untuk ${username}?`)) {
                 updateUserState(username, { role });
             }
         };
