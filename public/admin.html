@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
+    <title>Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { --dark-bg: #0c0c1e; --card-bg: #1a1a2e; --neon-cyan: #00fff2; --text-color: #e0e0e0; --light-text: #aaa; --btn-text: #0c0c1e; --danger-color: #f44336; --warning-color: #ffc107; --info-color: #17a2b8;}
@@ -17,9 +17,6 @@
         .input-group { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1rem; }
         input { width: 100%; box-sizing: border-box; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #334155; background-color: var(--dark-bg); color: var(--text-color); outline: none; }
         button { cursor: pointer; border: none; padding: 0.75rem 1.5rem; border-radius: 5px; font-weight: bold; transition: all 0.2s; }
-        .btn-primary { background-color: var(--neon-cyan); color: var(--btn-text); }
-        .btn-danger { background-color: var(--danger-color); color: white; }
-        .btn-full-width { width: 100%; }
         table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; table-layout: fixed; }
         th, td { padding: 0.75rem; border-bottom: 1px solid #334155; text-align: left; word-wrap: break-word; }
         th { background-color: #131326; }
@@ -30,11 +27,14 @@
         .btn-make-user { background-color: var(--light-text); color: var(--btn-text); }
         .btn-ban { background-color: var(--danger-color); color: white; }
         .btn-unban { background-color: #4caf50; color: white; }
+        .btn-danger { background-color: var(--danger-color); color: white; }
+        .btn-full-width { width: 100%; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Admin Dashboard</h1>
+        <h1>Dashboard</h1>
         <a href="/index.html" class="home-link">Kembali ke Home</a>
         <div class="dashboard">
             <div class="card user-management">
@@ -44,10 +44,10 @@
                 </div>
                 <table id="usersTable">
                     <thead><tr><th>Username</th><th>Role</th><th>Status</th><th>Aksi</th></tr></thead>
-                    <tbody><tr><td colspan="4" style="text-align:center;">Memuat data...</td></tr></tbody>
+                    <tbody><tr><td colspan="4" style="text-align:center;">Memverifikasi role...</td></tr></tbody>
                 </table>
             </div>
-            <div class="card server-management">
+            <div class="card server-management hidden" id="serverManagementCard">
                 <h2>Server Management</h2>
                 <table id="serversTable">
                       <thead><tr><th>ID</th><th>Nama Server</th><th>Owner</th><th>Aksi</th></tr></thead>
@@ -66,22 +66,49 @@
         import { onAuthStateChanged, getIdToken } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
         
         let idToken = null;
+        let currentUserRole = null;
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 idToken = await getIdToken(user);
-                loadAllData();
+                await loadUserRole();
+                setupDashboard();
             } else {
                 window.location.replace('/login.html');
             }
         });
+
+        async function loadUserRole() {
+            try {
+                const response = await fetch('/api/getUserRole', {
+                    headers: { 'Authorization': `Bearer ${idToken}` }
+                });
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.message || 'Gagal verifikasi role.');
+                }
+                const data = await response.json();
+                currentUserRole = data.role;
+            } catch (error) {
+                alert(`Error: ${error.message}. Anda akan dialihkan ke halaman login.`);
+                window.location.replace('/login.html');
+            }
+        }
+
+        function setupDashboard() {
+            if (currentUserRole === 'owner') {
+                document.getElementById('serverManagementCard').classList.remove('hidden');
+                loadAllServers();
+            }
+            loadAllUsers();
+        }
 
         async function apiCall(endpoint, options = {}) {
             const defaultOptions = {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` }
             };
-            const response = await fetch(`/api/admin/${endpoint}`, { ...defaultOptions, ...options });
+            const response = await fetch(`/api/${endpoint}`, { ...defaultOptions, ...options });
             if (!response.ok) {
                 const errorText = await response.text();
                 try {
@@ -94,39 +121,42 @@
             return response.json();
         }
 
-        function loadAllData() {
-            loadAllUsers();
-            loadAllServers();
-        }
-
         async function loadAllUsers() {
             const tableBody = document.getElementById('usersTable').querySelector('tbody');
+            tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Memuat data user...</td></tr>`;
             try {
-                const users = await apiCall('getAllUsers');
+                const users = await apiCall('admin/getAllUsers');
                 tableBody.innerHTML = '';
                 users.forEach(user => {
                     if (user.role === 'owner') return;
-                    const isBanned = user.banned;
+                    
                     const tr = document.createElement('tr');
-                    
+                    const isBanned = user.banned;
                     let actionButtons = '';
-
-                    if (user.role === 'user') {
-                        actionButtons += `<button class="btn-make-reseller" onclick="window.setUserRole('${user.username}', 'reseller')">Jadi Reseller Panel</button>`;
-                        actionButtons += `<button class="btn-make-reseller-web" onclick="window.setUserRole('${user.username}', 'web_reseller')">Jadi Reseller Web</button>`;
-                    } else if (user.role === 'reseller') {
-                        actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Jadi User</button>`;
-                        actionButtons += `<button class="btn-make-reseller-web" onclick="window.setUserRole('${user.username}', 'web_reseller')">Jadi Reseller Web</button>`;
-                    } else if (user.role === 'web_reseller') {
-                        actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Jadi User</button>`;
+                    
+                    if (currentUserRole === 'owner') {
+                        if (user.role === 'user') {
+                            actionButtons += `<button class="btn-make-reseller" onclick="window.setUserRole('${user.username}', 'reseller')">Jadi Reseller Panel</button>`;
+                        }
+                        if (user.role === 'user' || user.role === 'reseller') {
+                             actionButtons += `<button class="btn-make-reseller-web" onclick="window.setUserRole('${user.username}', 'web_reseller')">Jadi Reseller Web</button>`;
+                        }
+                        if (user.role !== 'user') {
+                            actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Jadi User</button>`;
+                        }
+                        if (!isBanned) {
+                            actionButtons += `<button class="btn-ban" onclick="window.setBanStatus('${user.username}', true)">Ban</button>`;
+                        } else {
+                            actionButtons += `<button class="btn-unban" onclick="window.setBanStatus('${user.username}', false)">Unban</button>`;
+                        }
+                    } else if (currentUserRole === 'web_reseller') {
+                        if (user.role === 'user') {
+                            actionButtons += `<button class="btn-make-reseller" onclick="window.setUserRole('${user.username}', 'reseller')">Jadi Reseller Panel</button>`;
+                        } else if (user.role === 'reseller') {
+                            actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Jadi User</button>`;
+                        }
                     }
                     
-                    if (!isBanned) {
-                        actionButtons += `<button class="btn-ban" onclick="window.setBanStatus('${user.username}', true)">Ban</button>`;
-                    } else {
-                        actionButtons += `<button class="btn-unban" onclick="window.setBanStatus('${user.username}', false)">Unban</button>`;
-                    }
-
                     tr.innerHTML = `
                         <td>${user.username}</td>
                         <td>${user.role}</td>
@@ -143,7 +173,7 @@
         async function loadAllServers() {
             const tableBody = document.getElementById('serversTable').querySelector('tbody');
             try {
-                const servers = await apiCall('getAllServers');
+                const servers = await apiCall('admin/getAllServers');
                 tableBody.innerHTML = '';
                 servers.forEach(server => {
                     const attr = server.attributes;
@@ -168,7 +198,6 @@
             const filter = input.value.toLowerCase();
             const table = document.getElementById('usersTable');
             const tr = table.getElementsByTagName('tr');
-
             for (let i = 1; i < tr.length; i++) {
                 const td = tr[i].getElementsByTagName('td')[0];
                 if (td) {
@@ -184,7 +213,7 @@
 
         async function updateUserState(username, state) {
             try {
-                const result = await apiCall('setUserState', {
+                const result = await apiCall('admin/setUserState', {
                     method: 'POST',
                     body: JSON.stringify({ username, ...state })
                 });
@@ -210,7 +239,7 @@
         window.deleteServer = async function(serverId) {
             if (!confirm(`Yakin ingin menghapus server ID ${serverId} secara permanen?`)) return;
             try {
-                const result = await apiCall('deleteServer', {
+                const result = await apiCall('admin/deleteServer', {
                     method: 'POST',
                     body: JSON.stringify({ serverId })
                 });
@@ -231,7 +260,7 @@
             try {
                 button.disabled = true;
                 button.textContent = "Menghapus...";
-                const result = await apiCall('clearAllServers', { method: 'POST' });
+                const result = await apiCall('admin/clearAllServers', { method: 'POST' });
                 alert(result.message);
                 loadAllServers();
             } catch (error) {
