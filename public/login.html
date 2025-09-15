@@ -49,6 +49,33 @@
             submitButton.textContent = "Login";
         }
 
+        async function tryFirebaseLogin(username, password) {
+            const usersRef = collection(db, "users");
+            const q = query(usersRef, where("username", "==", username));
+            const querySnapshot = await getDocs(q);
+            if (querySnapshot.empty) return false; // User tidak ada di Firebase
+
+            const userData = querySnapshot.docs[0].data();
+            if (userData.banned) throw new Error("Akun Anda telah di-ban.");
+
+            const fakeEmail = userData.email;
+            await signInWithEmailAndPassword(auth, fakeEmail, password);
+            return true; // Login Firebase berhasil
+        }
+
+        async function tryGitHubResellerLogin(username, password) {
+            const response = await fetch('/api/auth/reseller-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            // Jika berhasil, backend akan mengembalikan custom token
+            await signInWithCustomToken(auth, result.token);
+            return true;
+        }
+
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             submitButton.disabled = true;
@@ -61,26 +88,24 @@
             if (!username || !password) return showError('Username dan password wajib diisi!');
 
             try {
-                const usersRef = collection(db, "users");
-                const q = query(usersRef, where("username", "==", username));
-                const querySnapshot = await getDocs(q);
-                if (querySnapshot.empty) throw new Error("Username atau password salah!");
-                
-                const userData = querySnapshot.docs[0].data();
-                const fakeEmail = userData.email;
-
-                if (userData.banned) {
-                    throw new Error("Akun Anda telah di-ban. Silakan hubungi admin.");
+                const firebaseSuccess = await tryFirebaseLogin(username, password);
+                if (firebaseSuccess) {
+                    window.location.href = '/index.html';
                 }
-
-                await signInWithEmailAndPassword(auth, fakeEmail, password);
-                window.location.href = '/index.html';
-
-            } catch (error) {
-                if (error.message.includes("Akun Anda telah di-ban")) {
-                    showError(error.message);
-                } else {
-                    showError('Username atau password salah!');
+            } catch (firebaseError) {
+                // Jika errornya BUKAN karena password salah, tampilkan errornya
+                if (firebaseError.code !== 'auth/wrong-password' && !firebaseError.message.includes("salah")) {
+                    return showError(firebaseError.message);
+                }
+                
+                // JIKA PASSWORD SALAH, kita coba login sebagai Reseller Web
+                try {
+                    const resellerSuccess = await tryGitHubResellerLogin(username, password);
+                    if (resellerSuccess) {
+                        window.location.href = '/index.html';
+                    }
+                } catch (resellerError) {
+                    showError("Username atau password salah.");
                 }
             }
         });
