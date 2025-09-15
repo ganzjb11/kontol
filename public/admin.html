@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --dark-bg: #0c0c1e; --card-bg: #1a1a2e; --neon-cyan: #00fff2; --text-color: #e0e0e0; --light-text: #aaa; --btn-text: #0c0c1e; --danger-color: #f44336; --warning-color: #ffc107; }
+        body { margin: 0; padding: 2rem; font-family: 'Poppins', sans-serif; background: var(--dark-bg); color: var(--text-color); }
+        .container { max-width: 1200px; margin: auto; }
+        h1, h2 { color: var(--neon-cyan); text-align: center; }
+        .home-link { display: block; text-align: center; margin-bottom: 2rem; color: var(--neon-cyan); }
+        .dashboard { display: grid; grid-template-columns: 1fr; gap: 2rem; }
+        @media (min-width: 1024px) { .dashboard { grid-template-columns: 1fr 1fr; } }
+        .card { background-color: var(--card-bg); padding: 1.5rem; border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; table-layout: fixed; }
+        th, td { padding: 0.75rem; border-bottom: 1px solid #334155; text-align: left; word-wrap: break-word; }
+        th { background-color: #131326; }
+        .actions button { padding: 0.3rem 0.6rem; font-size: 12px; margin-right: 5px; border-radius: 4px; border: none; cursor: pointer; }
+        .btn-danger { background-color: var(--danger-color); color: white; }
+        .clear-all-card { border: 2px solid var(--danger-color); }
+        .btn-full-width { width: 100%; padding: 0.75rem; font-size: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Dashboard</h1>
+        <a href="/index.html" class="home-link">Kembali ke Home</a>
+        
+        <div class="dashboard">
+            <div class="card user-management">
+                <h2>User Management</h2>
+                <table id="usersTable">
+                    <thead><tr><th>Username</th><th>Role</th><th>Aksi</th></tr></thead>
+                    <tbody><tr><td colspan="3" style="text-align:center;">Memuat data...</td></tr></tbody>
+                </table>
+            </div>
+
+            <div class="card server-management">
+                <h2>Server Management</h2>
+                <table id="serversTable">
+                     <thead><tr><th>ID</th><th>Nama Server</th><th>Owner</th><th>Aksi</th></tr></thead>
+                     <tbody><tr><td colspan="4" style="text-align:center;">Memuat data...</td></tr></tbody>
+                </table>
+                 <div class="card clear-all-card" style="margin-top: 2rem;">
+                    <h2>Zona Berbahaya</h2>
+                    <p>Tombol ini akan menghapus SEMUA server kecuali yang dimiliki oleh user aman di config.</p>
+                    <button class="btn-danger btn-full-width" onclick="window.clearAllServers()">Clear All Servers</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth } from './firebase-config.js';
+        import { onAuthStateChanged, getIdToken } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        
+        let idToken = null;
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                idToken = await getIdToken(user);
+                loadAllData();
+            } else {
+                window.location.replace('/login.html');
+            }
+        });
+
+        async function apiCall(endpoint, options = {}) {
+            const defaultOptions = {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${idToken}`
+                }
+            };
+            const response = await fetch(`/api/admin/${endpoint}`, { ...defaultOptions, ...options });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            return result;
+        }
+
+        async function loadAllData() {
+            loadAllUsers();
+            loadAllServers();
+        }
+
+        async function loadAllUsers() {
+            const tableBody = document.getElementById('usersTable').querySelector('tbody');
+            try {
+                const users = await apiCall('getAllUsers');
+                tableBody.innerHTML = '';
+                users.forEach(user => {
+                    if (user.role === 'owner') return;
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${user.username}</td><td>${user.role}</td><td class="actions">...</td>`;
+                    tableBody.appendChild(tr);
+                });
+            } catch (error) {
+                tableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:red;">${error.message}</td></tr>`;
+            }
+        }
+        
+        async function loadAllServers() {
+            const tableBody = document.getElementById('serversTable').querySelector('tbody');
+            try {
+                const servers = await apiCall('getAllServers');
+                tableBody.innerHTML = '';
+                servers.forEach(server => {
+                    const attr = server.attributes;
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${attr.id}</td>
+                        <td>${attr.name}</td>
+                        <td>${attr.relationships.user.attributes.username}</td>
+                        <td class="actions">
+                            <button class="btn-danger" onclick="window.deleteServer(${attr.id})">Hapus</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            } catch (error) {
+                tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:red;">${error.message}</td></tr>`;
+            }
+        }
+
+        window.deleteServer = async function(serverId) {
+            if (!confirm(`Yakin ingin menghapus server ID ${serverId} secara permanen?`)) return;
+            try {
+                const result = await apiCall('deleteServer', {
+                    method: 'POST',
+                    body: JSON.stringify({ serverId })
+                });
+                alert(result.message);
+                loadAllServers();
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        window.clearAllServers = async function() {
+            if (!confirm(`PERINGATAN!!!\nIni akan menghapus SEMUA server kecuali punya admin. Aksi ini tidak bisa dibatalkan.\n\nLanjutkan?`)) return;
+            if (!confirm(`ANDA 100% YAKIN?`)) return;
+            try {
+                const result = await apiCall('clearAllServers', { method: 'POST' });
+                alert(result.message);
+                loadAllServers();
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>
