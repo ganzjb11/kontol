@@ -134,8 +134,8 @@
         function loadUserDataAndSetupForm(userData) {
             welcomeMessage.textContent = `Selamat datang, ${userData.username}! (Role: ${userData.role})`;
             
-            if (userData.role === 'owner' || userData.role === 'web_reseller') {
-                adminBtn.textContent = (userData.role === 'owner') ? 'Admin Panel' : 'Reseller Panel';
+            if (userData.role === 'owner' || userData.role === 'reseller_apk') {
+                adminBtn.textContent = (userData.role === 'owner') ? 'Admin Panel' : 'Reseller APK Panel';
                 adminBtn.style.display = 'block';
             } else {
                 adminBtn.style.display = 'none';
@@ -144,7 +144,7 @@
             ramSelect.innerHTML = '<option value="" disabled selected>Pilih RAM Server</option>';
             let ramOptions = [];
             
-            if (userData.role === 'owner' || userData.role === 'reseller' || userData.role === 'web_reseller') {
+            if (userData.role === 'owner' || userData.role === 'reseller' || userData.role === 'reseller_apk') {
                 for (let i = 1; i <= 10; i++) {
                     ramOptions.push(`${i}gb`);
                 }
