@@ -3,7 +3,9 @@ const { db, verifyUser } = require('../_firebase-admin.js');
 
 module.exports = async (req, res) => {
     try {
-        await verifyUser(req, 'owner');
+        // Ubah dari 'owner' menjadi 'web_reseller'
+        await verifyUser(req, 'web_reseller');
+        
         const usersSnapshot = await db.collection('users').get();
         const users = usersSnapshot.docs.map(doc => {
             const data = doc.data();
