@@ -10,7 +10,21 @@
         body { margin: 0; padding: 2rem; font-family: 'Poppins', sans-serif; background: var(--dark-bg); color: var(--text-color); }
         .container { max-width: 1200px; margin: auto; }
         h1, h2 { color: var(--neon-cyan); text-align: center; }
-        .home-link { display: block; text-align: center; margin-bottom: 2rem; color: var(--neon-cyan); }
+        .home-link { 
+            display: inline-block;
+            text-align: center; 
+            margin-bottom: 2rem; 
+            color: var(--neon-cyan);
+            border: 1px solid var(--neon-cyan);
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .home-link:hover {
+            background-color: var(--neon-cyan);
+            color: var(--btn-text);
+        }
         .dashboard { display: grid; grid-template-columns: 1fr; gap: 2rem; }
         @media (min-width: 1024px) { .dashboard { grid-template-columns: 1.2fr 1fr; } }
         .card { background-color: var(--card-bg); padding: 1.5rem; border-radius: 8px; }
@@ -36,7 +50,9 @@
 <body>
     <div class="container">
         <h1 id="pageTitle">Memuat Dashboard...</h1>
-        <a href="/index.html" class="home-link">Kembali ke Home</a>
+        <div class="home-link-container" style="text-align: center;">
+             <a href="/index.html" class="home-link">Kembali ke Home</a>
+        </div>
         <div class="dashboard">
             <div class="card user-management">
                 <h2>User Management</h2>
@@ -139,7 +155,6 @@
                     const isBanned = user.banned;
                     let actionButtons = '';
                     
-                    // --- LOGIKA PEMBUATAN TOMBOL DIPERBAIKI TOTAL DI SINI ---
                     if (currentUserRole === 'owner') {
                         if (user.role === 'user') {
                             actionButtons += `<button class="btn-make-reseller" onclick="window.setUserRole('${user.username}', 'reseller')">Jadi Reseller Panel</button>`;
@@ -159,7 +174,6 @@
                         } else if (user.role === 'reseller') {
                             actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Cabut Reseller Panel</button>`;
                         }
-                        // Untuk web_reseller, tidak ada tombol aksi untuk user lain yang rolenya web_reseller.
                     }
                     
                     tr.innerHTML = `
@@ -230,8 +244,8 @@
         }
         
         window.setUserRole = (username, role) => {
-            const action = (role === 'user' || role === 'reseller') ? 'mengubah role' : 'memberikan role';
-            if (confirm(`Yakin ingin ${action} untuk ${username}?`)) {
+            const actionText = (role === 'user') ? `mencabut role dari ${username}` : `memberikan role ${role} kepada ${username}`;
+            if (confirm(`Yakin ingin ${actionText}?`)) {
                 updateUserState(username, { role });
             }
         };
