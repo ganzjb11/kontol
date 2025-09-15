@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reseller Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --dark-bg: #0c0c1e; --card-bg: #1a1a2e; --neon-cyan: #00fff2; --text-color: #e0e0e0; --light-text: #aaa; --btn-text: #0c0c1e; --danger-color: #f44336; --warning-color: #ffc107; }
+        body { margin: 0; padding: 2rem; font-family: 'Poppins', sans-serif; background: var(--dark-bg); color: var(--text-color); }
+        .container { max-width: 1000px; margin: auto; }
+        h1, h2 { color: var(--neon-cyan); text-align: center; }
+        .home-link { display: block; text-align: center; margin-bottom: 2rem; color: var(--neon-cyan); }
+        table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; table-layout: fixed; }
+        th, td { padding: 0.75rem; border: 1px solid var(--card-bg); text-align: left; word-wrap: break-word; }
+        th { background-color: var(--card-bg); }
+        tbody tr:nth-child(odd) { background-color: #131326; }
+        .actions button { padding: 0.3rem 0.6rem; font-size: 12px; margin-right: 5px; border-radius: 4px; border: none; cursor: pointer; margin-top: 5px; }
+        .btn-make-reseller { background-color: var(--neon-cyan); color: var(--btn-text); }
+        .btn-make-user { background-color: var(--light-text); color: var(--btn-text); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Reseller Dashboard</h1>
+        <a href="/index.html" class="home-link">Kembali ke Home</a>
+        <div class="user-management">
+            <h2>User Panel Anda</h2>
+            <p>Di sini Anda bisa mengangkat user menjadi "Reseller Panel" (agar bisa create RAM besar).</p>
+            <table id="usersTable">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Panel Dibuat</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="4" style="text-align:center;">Memuat data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script type="module">
+        import { auth, db } from './firebase-config.js';
+        import { onAuthStateChanged, getIdToken } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        import { doc, getDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+        
+        let idToken = null;
+        let currentUser = null;
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                const userDocRef = doc(db, "users", user.uid);
+                const docSnap = await getDoc(userDocRef);
+                
+                const userData = docSnap.data();
+                if (!docSnap.exists() || (userData.role !== 'web_reseller' && userData.role !== 'owner')) {
+                    alert('Akses ditolak!');
+                    return window.location.replace('/index.html');
+                }
+                
+                idToken = await getIdToken(user);
+                loadMyUsers();
+            } else {
+                window.location.replace('/login.html');
+            }
+        });
+
+        async function loadMyUsers() {
+            const tableBody = document.getElementById('usersTable').querySelector('tbody');
+            try {
+                const response = await fetch('/api/reseller/getMyUsers', {
+                    headers: { 'Authorization': `Bearer ${idToken}` }
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message);
+                
+                const users = result;
+                tableBody.innerHTML = '';
+                if (users.length === 0) {
+                     tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Anda belum memiliki user.</td></tr>`;
+                }
+                users.forEach(user => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${user.username}</td>
+                        <td>${user.role}</td>
+                        <td>${user.panelCount || 0}</td>
+                        <td class="actions">
+                            ${user.role !== 'reseller' ? `<button class="btn-make-reseller" onclick="window.setUserRole('${user.username}', 'reseller')">Jadi Reseller Panel</button>` : ''}
+                            ${user.role === 'reseller' ? `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Jadi User Biasa</button>` : ''}
+                        </td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            } catch (error) {
+                tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--danger-color);">${error.message}</td></tr>`;
+            }
+        }
+
+        async function updateUserState(username, state) {
+            if (!confirm(`Apakah Anda yakin ingin mengubah role user ${username}?`)) return;
+            try {
+                const response = await fetch('/api/reseller/setUserRole', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+                    body: JSON.stringify({ username, ...state })
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message);
+                alert(result.message);
+                loadMyUsers();
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+        
+        window.setUserRole = (username, role) => updateUserState(username, { role });
+    </script>
+</body>
+</html>
