@@ -38,15 +38,18 @@
         .header {
             width: 100%;
             display: flex;
-            justify-content: space-between;
             align-items: center;
             margin-bottom: 2rem;
         }
         .header .menu-icon {
-            font-size: 2rem;
+            font-size: 1.5rem;
             cursor: pointer;
             color: var(--light-purple);
+            transition: color 0.2s ease;
             z-index: 1001;
+        }
+        .header .menu-icon:hover {
+            color: var(--main-purple);
         }
         .logo {
             width: 150px;
@@ -102,10 +105,9 @@
             cursor: pointer;
             margin-top: 1rem;
         }
-        .form-button:hover:not(:disabled) {
-            background-color: var(--light-purple);
-            color: var(--bg-color);
-            box-shadow: 0 0 20px rgba(156, 60, 255, 0.8);
+        .form-button:hover:not(:disabled), .logout-btn-footer:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(156, 60, 255, 0.6);
         }
         .form-button:disabled {
             background-color: #555;
@@ -141,10 +143,6 @@
             border-radius: 5px;
             cursor: pointer;
             transition: all 0.3s ease;
-        }
-        .logout-btn-footer:hover {
-            background: var(--light-purple);
-            color: var(--bg-color);
         }
         .sidebar {
             height: 100%;
@@ -239,7 +237,7 @@
 <body>
     <div class="main-container">
         <header class="header">
-            <div class="menu-icon" id="openSidebarBtn">&#9776;</div>
+            <div class="menu-icon" id="openSidebarBtn"><i class="fas fa-bars"></i></div>
         </header>
         <img src="https://files.catbox.moe/oy87u3.jpg" alt="Logo" class="logo">
         <h1 class="title">Panel Generator</h1>
