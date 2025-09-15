@@ -6,7 +6,7 @@
     <title>Admin Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --dark-bg: #0c0c1e; --card-bg: #1a1a2e; --neon-cyan: #00fff2; --text-color: #e0e0e0; --light-text: #aaa; --btn-text: #0c0c1e; --danger-color: #f44336; --warning-color: #ffc107; }
+        :root { --dark-bg: #0c0c1e; --card-bg: #1a1a2e; --neon-cyan: #00fff2; --text-color: #e0e0e0; --light-text: #aaa; --btn-text: #0c0c1e; --danger-color: #f44336; --warning-color: #ffc107; --info-color: #17a2b8;}
         body { margin: 0; padding: 2rem; font-family: 'Poppins', sans-serif; background: var(--dark-bg); color: var(--text-color); }
         .container { max-width: 1200px; margin: auto; }
         h1, h2 { color: var(--neon-cyan); text-align: center; }
@@ -23,9 +23,10 @@
         table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; table-layout: fixed; }
         th, td { padding: 0.75rem; border-bottom: 1px solid #334155; text-align: left; word-wrap: break-word; }
         th { background-color: #131326; }
-        .actions button { padding: 0.3rem 0.6rem; font-size: 12px; margin-right: 5px; }
+        .actions button { padding: 0.3rem 0.6rem; font-size: 12px; margin-right: 5px; margin-top: 5px; } /* Tambah margin-top */
         .clear-all-card { border: 2px solid var(--danger-color); margin-top: 2rem; }
-        .btn-make-reseller-web { background-color: #17a2b8; color: white; }
+        .btn-make-reseller { background-color: var(--warning-color); color: var(--btn-text); }
+        .btn-make-reseller-web { background-color: var(--info-color); color: white; }
         .btn-make-user { background-color: var(--light-text); color: var(--btn-text); }
         .btn-ban { background-color: var(--danger-color); color: white; }
         .btn-unban { background-color: #4caf50; color: white; }
@@ -49,8 +50,8 @@
             <div class="card server-management">
                 <h2>Server Management</h2>
                 <table id="serversTable">
-                     <thead><tr><th>ID</th><th>Nama Server</th><th>Owner</th><th>Aksi</th></tr></thead>
-                     <tbody><tr><td colspan="4" style="text-align:center;">Memuat data...</td></tr></tbody>
+                      <thead><tr><th>ID</th><th>Nama Server</th><th>Owner</th><th>Aksi</th></tr></thead>
+                      <tbody><tr><td colspan="4" style="text-align:center;">Memuat data...</td></tr></tbody>
                 </table>
                  <div class="card clear-all-card">
                     <h2>Zona Berbahaya</h2>
@@ -82,14 +83,11 @@
             };
             const response = await fetch(`/api/admin/${endpoint}`, { ...defaultOptions, ...options });
             if (!response.ok) {
-                 // Coba baca sebagai teks dulu, siapa tau error HTML
                 const errorText = await response.text();
                 try {
-                    // Coba parse sebagai JSON
                     const jsonError = JSON.parse(errorText);
                     throw new Error(jsonError.message || 'Error tidak diketahui');
                 } catch (e) {
-                    // Jika gagal parse, berarti itu error HTML
                     throw new Error("Terjadi error di server (respons bukan JSON). Cek log Vercel.");
                 }
             }
@@ -112,9 +110,15 @@
                     const tr = document.createElement('tr');
                     
                     let actionButtons = '';
+
+                    // === LOGIKA TOMBOL DIPERBARUI DI SINI ===
                     if (user.role === 'user') {
-                        actionButtons += `<button class="btn-make-reseller-web" onclick="window.setUserRole('${user.username}', 'reseller')">Jadi Reseller</button>`;
+                        actionButtons += `<button class="btn-make-reseller" onclick="window.setUserRole('${user.username}', 'reseller')">Jadi Reseller Panel</button>`;
+                        actionButtons += `<button class="btn-make-reseller-web" onclick="window.makeWebReseller('${user.username}')">Jadi Reseller Web</button>`;
                     } else if (user.role === 'reseller') {
+                        actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Jadi User</button>`;
+                        actionButtons += `<button class="btn-make-reseller-web" onclick="window.makeWebReseller('${user.username}')">Jadi Reseller Web</button>`;
+                    } else if (user.role === 'web_reseller') {
                         actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Jadi User</button>`;
                     }
                     
@@ -180,7 +184,7 @@
         }
 
         async function updateUserState(username, state) {
-            if (!confirm(`Yakin ingin mengubah status user ${username}?`)) return;
+            // Konfirmasi di-handle di fungsi masing-masing
             try {
                 const result = await apiCall('setUserState', {
                     method: 'POST',
@@ -193,8 +197,29 @@
             }
         }
         
-        window.setUserRole = (username, role) => updateUserState(username, { role });
-        window.setBanStatus = (username, banned) => updateUserState(username, { banned });
+        // === FUNGSI BARU UNTUK JADIKAN RESELLER WEB ===
+        window.makeWebReseller = async function(username) {
+            const password = prompt(`Password ini akan disimpan di file GitHub untuk user '${username}'.\n\nMasukkan password baru untuk Reseller Web:`);
+            if (!password) {
+                alert('Aksi dibatalkan. Password tidak boleh kosong.');
+                return;
+            }
+            if (confirm(`Yakin ingin mengangkat ${username} menjadi Reseller Web?`)) {
+                await updateUserState(username, { role: 'web_reseller', password: password });
+            }
+        }
+
+        window.setUserRole = (username, role) => {
+            if (confirm(`Yakin ingin mengubah role ${username} menjadi ${role}?`)) {
+                updateUserState(username, { role });
+            }
+        };
+
+        window.setBanStatus = (username, banned) => {
+            if (confirm(`Yakin ingin ${banned ? 'BAN' : 'UNBAN'} user ${username}?`)) {
+                updateUserState(username, { banned });
+            }
+        };
 
         window.deleteServer = async function(serverId) {
             if (!confirm(`Yakin ingin menghapus server ID ${serverId} secara permanen?`)) return;
@@ -216,17 +241,18 @@
             if (prompt(`Untuk konfirmasi, ketik "${confirmationText}" di bawah ini:`) !== confirmationText) {
                 return alert('Konfirmasi dibatalkan.');
             }
+            const button = document.querySelector('.clear-all-card button');
             try {
-                const button = document.querySelector('.clear-all-card button');
                 button.disabled = true;
                 button.textContent = "Menghapus...";
                 const result = await apiCall('clearAllServers', { method: 'POST' });
                 alert(result.message);
                 loadAllServers();
-                button.disabled = false;
-                button.textContent = "Clear All Servers";
             } catch (error) {
                 alert(`Error: ${error.message}`);
+            } finally {
+                button.disabled = false;
+                button.textContent = "Clear All Servers";
             }
         }
     </script>
