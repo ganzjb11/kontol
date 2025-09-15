@@ -4,88 +4,78 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --dark-bg: #0c0c1e; --card-bg: #1a1a2e; --neon-cyan: #00fff2; --neon-shadow: rgba(0, 255, 242, 0.6); --text-color: #e0e0e0; --light-text: #aaa; --btn-text: #0c0c1e; }
-        body, html { margin: 0; padding: 0; font-family: 'Poppins', sans-serif; background: radial-gradient(circle at top left, var(--card-bg), var(--dark-bg)); color: var(--text-color); height: 100%; display: flex; justify-content: center; align-items: center; }
-        .auth-container { max-width: 400px; width: 90%; margin: 2rem auto; background-color: var(--card-bg); padding: 2rem; border-radius: 15px; border: 2px solid var(--neon-cyan); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6); text-align: center; }
-        h1 { color: var(--neon-cyan); text-shadow: 0 0 10px var(--neon-shadow); margin-bottom: 1rem; }
+        :root { --bg-color: #100a1c; --main-purple: #9c3cff; --light-purple: #c89cff; --card-bg: #1e1233; --text-color: #f0f0f0; --placeholder-color: #8c829e; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { font-family: 'Poppins', sans-serif; background: var(--bg-color); color: var(--text-color); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 1rem; }
+        .main-container { width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; }
+        .auth-container { width: 100%; background-color: var(--card-bg); padding: 2.5rem 2rem; border-radius: 15px; border: 2px solid var(--main-purple); box-shadow: 0 0 25px rgba(156, 60, 255, 0.5); text-align: center; }
+        h1 { font-size: 2rem; font-weight: 600; color: var(--text-color); margin-bottom: 2rem; }
         .input-group { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem; }
-        input { width: 100%; box-sizing: border-box; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--neon-cyan); background-color: var(--dark-bg); color: var(--text-color); outline: none; box-shadow: 0 0 5px var(--neon-shadow); }
-        button { width: 100%; padding: 0.75rem 1.5rem; border: none; background-color: var(--neon-cyan); color: var(--btn-text); border-radius: 0.5rem; font-weight: bold; cursor: pointer; transition: all 0.3s ease; }
-        button:disabled { background-color: #555; cursor: not-allowed; }
-        button:hover:not(:disabled) { background-color: #00b8d4; }
+        input { width: 100%; padding: 1rem; background-color: var(--bg-color); border: 2px solid var(--main-purple); border-radius: 8px; color: var(--text-color); font-size: 1rem; font-family: 'Poppins', sans-serif; transition: all 0.2s ease-in-out; }
+        input::placeholder { color: var(--placeholder-color); }
+        input:focus { outline: none; box-shadow: 0 0 15px rgba(156, 60, 255, 0.8); }
+        button { width: 100%; padding: 1rem; background-color: var(--main-purple); border: 2px solid var(--main-purple); border-radius: 8px; color: var(--text-color); font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease-in-out; }
+        button:hover:not(:disabled) { background-color: var(--light-purple); color: var(--bg-color); box-shadow: 0 0 20px rgba(156, 60, 255, 0.8); }
+        button:disabled { background-color: #555; border-color: #555; cursor: not-allowed; opacity: 0.7; }
         .auth-link { margin-top: 1.5rem; color: var(--light-text); }
-        .auth-link a { color: var(--neon-cyan); text-decoration: none; }
+        .auth-link a { color: var(--main-purple); text-decoration: none; font-weight: 600; }
         .status-message { margin-top: 1rem; padding: 1rem; border-radius: 8px; text-align: center; display: none; background-color: rgba(244, 67, 54, 0.2); color: #f44336; }
     </style>
 </head>
 <body>
-    <main class="auth-container">
-        <h1>Login ke Akun</h1>
-        <form id="loginForm" class="input-group">
-            <input type="text" id="username" placeholder="Masukkan Username" required>
-            <input type="password" id="password" placeholder="Masukkan Password" required>
-            <button type="submit" id="submitButton">Login</button>
-        </form>
-        <div id="errorMessage" class="status-message"></div>
-        <div class="auth-link">
-            Belum punya akun? <a href="/register.html">Daftar di sini</a>
+    <div class="main-container">
+        <div class="auth-container">
+            <h1>Login Akun</h1>
+            <form id="loginForm" class="input-group">
+                <input type="text" id="username" placeholder="Masukkan Username" required autocomplete="off">
+                <input type="password" id="password" placeholder="Masukkan Password" required autocomplete="off">
+                <button type="submit" id="submitButton">Login</button>
+            </form>
+            <div id="errorMessage" class="status-message"></div>
+            <div class="auth-link">
+                Belum punya akun? <a href="/register.html">Daftar di sini</a>
+            </div>
         </div>
-    </main>
+    </div>
     <script type="module">
         import { auth, db } from './firebase-config.js';
         import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
         import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-        
         const loginForm = document.getElementById('loginForm');
         const errorMessage = document.getElementById('errorMessage');
         const submitButton = document.getElementById('submitButton');
-
         function showError(message) {
             errorMessage.textContent = message;
             errorMessage.style.display = 'block';
             submitButton.disabled = false;
             submitButton.textContent = "Login";
         }
-
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             submitButton.disabled = true;
             submitButton.textContent = "Memproses...";
             errorMessage.style.display = 'none';
-
             const username = document.getElementById('username').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
-            
             if (!username || !password) return showError('Username dan password wajib diisi!');
-
             try {
                 const usersRef = collection(db, "users");
                 const q = query(usersRef, where("username", "==", username));
                 const querySnapshot = await getDocs(q);
-
                 if (querySnapshot.empty) {
                     throw new Error("Username atau password salah!");
                 }
-                
                 const userData = querySnapshot.docs[0].data();
-                const fakeEmail = userData.email;
-
                 if (userData.banned) {
                     throw new Error("Akun Anda telah di-ban. Silakan hubungi admin.");
                 }
-
-                await signInWithEmailAndPassword(auth, fakeEmail, password);
+                await signInWithEmailAndPassword(auth, userData.email, password);
                 window.location.href = '/index.html';
-
             } catch (error) {
-                if (error.message.includes("Akun Anda telah di-ban")) {
-                    showError(error.message);
-                } else {
-                    // Semua error lain (salah password, user tidak ada) disatukan pesannya
-                    showError('Username atau password salah!');
-                }
+                const banMessage = "Akun Anda telah di-ban";
+                showError(error.message.includes(banMessage) ? error.message : 'Username atau password salah!');
             }
         });
     </script>
