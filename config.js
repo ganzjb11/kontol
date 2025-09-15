@@ -1,4 +1,3 @@
-// config.js
 module.exports = {
   pterodactylConfig: {
     domain: "https://rofiksoleh.cloud-hosting.biz.id",
@@ -14,8 +13,8 @@ module.exports = {
         "kyanz@gmail.com"
     ] 
   },
-  githubConfig: {
-    username: "fyomell",
-    repoName: "reseller-data"
+  telegramConfig: {
+    botToken: process.env.TELEGRAM_BOT_TOKEN,
+    ownerChatId: process.env.TELEGRAM_OWNER_CHAT_ID
   }
 };
