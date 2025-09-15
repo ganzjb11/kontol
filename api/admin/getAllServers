@@ -1,0 +1,21 @@
+// api/admin/getAllServers.js
+const { pterodactylConfig } = require('../../config.js');
+const { verifyUser } = require('../_firebase-admin.js');
+const fetch = require('node-fetch');
+
+module.exports = async (req, res) => {
+    try {
+        await verifyUser(req, 'owner'); // Hanya Owner
+        const { domain, apiKey } = pterodactylConfig;
+        
+        const response = await fetch(`${domain}/api/application/servers?include=user`, {
+            headers: { 'Authorization': `Bearer ${apiKey}` }
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.errors ? data.errors[0].detail : "Gagal fetch servers");
+
+        res.status(200).json(data.data);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
