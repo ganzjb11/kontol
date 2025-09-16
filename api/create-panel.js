@@ -2,6 +2,7 @@
 const { pterodactylConfig } = require('../config.js');
 const { db, verifyUser } = require('./_firebase-admin.js');
 const fetch = require('node-fetch');
+const admin = require('firebase-admin');
 
 function getServerResources(ramSelection) {
     const resources = { ram: 0, disk: 0, cpu: 0 };
@@ -23,52 +24,57 @@ function getServerResources(ramSelection) {
 }
 
 module.exports = async (req, res) => {
-    if (req.method !== 'POST') {
-        return res.status(405).json({ message: 'Method not allowed' });
-    }
+    if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed' });
     
     try {
         const { userDoc, userData } = await verifyUser(req);
+        const { username, password, serverName, ram, usedCouponCode } = req.body;
         
-        const { domain, apiKey, eggId, nestId, locationId } = pterodactylConfig;
-        const { username, password, serverName, ram } = req.body;
-        
-        if (!username || !password || !ram) {
-            return res.status(400).json({ message: 'Input tidak lengkap.' });
-        }
+        if (!username || !password || !ram) return res.status(400).json({ message: 'Input tidak lengkap.' });
 
         const userRole = userData.role || 'user';
-        if (userRole === 'user') {
-            if (userData.panelCount >= 1) {
-                return res.status(403).json({ message: 'Limit 1 panel per akun tercapai.' });
-            }
-            if (ram !== '1gb' && ram !== '2gb') {
-                return res.status(403).json({ message: 'User biasa hanya boleh memilih RAM 1GB atau 2GB.' });
+        let isCouponCreation = false;
+
+        if (usedCouponCode) {
+            isCouponCreation = true;
+            const claimedCoupons = userData.claimedCoupons || [];
+            const couponToUse = claimedCoupons.find(c => c.code === usedCouponCode && !c.used);
+            if (!couponToUse) throw new Error("Reward kupon tidak valid atau sudah dipakai.");
+            if (couponToUse.rewardRam !== ram) throw new Error("RAM yang dipilih tidak sesuai dengan reward kupon.");
+        } else {
+            if (userRole === 'user') {
+                if (userData.panelCount >= 1) return res.status(403).json({ message: 'Limit 1 panel per akun tercapai.' });
+                if (ram !== '1gb' && ram !== '2gb') return res.status(403).json({ message: 'User biasa hanya boleh memilih RAM 1GB atau 2GB.' });
             }
         }
-
+        
+        const { domain, apiKey, eggId, nestId, locationId } = pterodactylConfig;
         const pteroUserEmail = `${username.toLowerCase().replace(/\s/g, '')}@${domain.replace(/^https?:\/\//, '')}`;
+        
         const userResponse = await fetch(`${domain}/api/application/users`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify({
-                email: pteroUserEmail,
-                username: username,
-                first_name: username,
-                last_name: 'User',
-                password: password
-            }),
+            body: JSON.stringify({ email: pteroUserEmail, username, first_name: username, last_name: 'User', password }),
         });
-
         const pteroUserData = await userResponse.json();
         if (!userResponse.ok && (!pteroUserData.errors || pteroUserData.errors[0].code !== 'UnprocessableEntityHttpException')) {
              throw new Error(pteroUserData.errors ? pteroUserData.errors[0].detail : 'Gagal membuat user Ptero.');
         }
-        
         const pteroUserId = pteroUserData.attributes.id;
-        
-        // Simpan hanya Pterodactyl User ID ke Firestore, tanpa Client API Key
-        await userDoc.ref.update({ pteroUserId: pteroUserId });
+
+        if (!userData.pteroClientApiKey) {
+            const keyDescription = `PanelGW Key for ${userData.username}`;
+            const keyResponse = await fetch(`${domain}/api/application/users/${pteroUserId}/api-keys`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ description: keyDescription, allowed_ips: [] })
+            });
+            const keyData = await keyResponse.json();
+            if (keyResponse.ok) {
+                const clientApiKey = keyData.attributes.identifier;
+                await userDoc.ref.update({ pteroUserId, pteroClientApiKey: clientApiKey });
+            }
+        }
         
         const finalServerName = serverName || `Server for ${username}`;
         const { ram: memory, disk, cpu } = getServerResources(ram);
@@ -96,8 +102,15 @@ module.exports = async (req, res) => {
             throw new Error(serverData.errors ? serverData.errors[0].detail : 'Gagal membuat server Ptero.');
         }
 
-        if (userRole === 'user') {
-            await userDoc.ref.update({ panelCount: (userData.panelCount || 0) + 1 });
+        if (isCouponCreation) {
+            const updatedCoupons = userData.claimedCoupons.map(c => 
+                (c.code === usedCouponCode) ? { ...c, used: true } : c
+            );
+            await userDoc.ref.update({ claimedCoupons: updatedCoupons });
+        } else {
+            if (userRole === 'user') {
+                await userDoc.ref.update({ panelCount: admin.firestore.FieldValue.increment(1) });
+            }
         }
         
         res.status(200).json({ message: 'Panel berhasil dibuat!', loginUrl: domain, username, password });
