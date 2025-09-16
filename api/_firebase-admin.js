@@ -39,6 +39,7 @@ async function verifyUser(req, requiredRole = 'user') {
         throw new Error(`Akses ditolak. Role Anda '${userRole}', butuh role minimal '${requiredRole}'.`);
     }
     
+    // FIX UTAMA ADA DI SINI: Kita return 'uid' juga
     return { uid, userDoc, userData: { ...userData, role: userRole } };
 }
 
