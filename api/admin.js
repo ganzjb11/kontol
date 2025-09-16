@@ -122,6 +122,34 @@ module.exports = async (req, res) => {
                 return res.status(403).json({ message: 'Aksi tidak diizinkan.' });
             }
 
+            case 'createCoupon': {
+                if (loggedInUserRole !== 'owner') {
+                    return res.status(403).json({ message: 'Hanya owner yang bisa membuat kupon.' });
+                }
+                const { code, capacity, rewardRam } = payload;
+                if (!code || !capacity || !rewardRam) {
+                    return res.status(400).json({ message: 'Data kupon tidak lengkap.' });
+                }
+
+                const couponCode = code.toUpperCase();
+                const couponRef = db.collection('coupons').doc(couponCode);
+                const doc = await couponRef.get();
+
+                if (doc.exists) {
+                    return res.status(400).json({ message: `Kupon dengan kode '${couponCode}' sudah ada.` });
+                }
+
+                await couponRef.set({
+                    code: couponCode,
+                    capacity: parseInt(capacity, 10),
+                    rewardRam: rewardRam,
+                    redeemedBy: [], // Array untuk menyimpan UID user yang sudah redeem
+                    createdAt: new Date(),
+                });
+
+                return res.status(201).json({ message: `Kupon '${couponCode}' berhasil dibuat!` });
+            }
+
             case 'getAllServers': {
                 if (loggedInUserRole !== 'owner') return res.status(403).json({ message: 'Hanya owner yang bisa melihat semua server.' });
                 const allServers = await fetchAllPterodactylData(`${domain}/api/application/servers?include=user`, apiKey);
