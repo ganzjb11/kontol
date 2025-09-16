@@ -15,6 +15,7 @@
             --card-bg: #1e1233;
             --text-color: #f0f0f0;
             --placeholder-color: #8c829e;
+            --danger-color: #f44336;
         }
         * {
             margin: 0;
@@ -28,7 +29,7 @@
         }
         .main-container {
             width: 100%;
-            max-width: 400px;
+            max-width: 600px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -99,9 +100,6 @@
             background-repeat: no-repeat;
             background-position: right 1rem center;
         }
-        select option {
-            background: var(--card-bg);
-        }
         .form-button {
             background-color: var(--main-purple);
             font-weight: 700;
@@ -116,11 +114,6 @@
             background-color: #555;
             border-color: #555;
             cursor: not-allowed;
-        }
-        .credit {
-            margin-top: 2rem;
-            color: var(--placeholder-color);
-            font-size: 0.9rem;
         }
         .footer {
             width: 100%;
@@ -147,9 +140,95 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        .sidebar {
-            height: 100%; width: 280px; position: fixed; z-index: 1002; top: 0; left: 0; background-color: var(--card-bg); overflow-x: hidden; transition: 0.3s; transform: translateX(-100%); padding-top: 60px; border-right: 2px solid var(--main-purple);
+        .server-list {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-top: 2rem;
+            margin-bottom: 2rem;
         }
+        .server-card {
+            background-color: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 15px;
+            border: 1px solid var(--main-purple);
+        }
+        .server-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .server-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--light-purple);
+        }
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .status.running { color: #27ae60; } .status.running .status-dot { background-color: #27ae60; }
+        .status.offline { color: var(--danger-color); } .status.offline .status-dot { background-color: var(--danger-color); }
+        .status.starting, .status.stopping { color: #f39c12; } .status.starting .status-dot, .status.stopping .status-dot { background-color: #f39c12; }
+        .resource-bar {
+            width: 100%;
+            background-color: var(--bg-color);
+            border-radius: 5px;
+            margin-bottom: 0.5rem;
+            overflow: hidden;
+            border: 1px solid #333;
+        }
+        .resource-bar-inner {
+            height: 10px;
+            background-color: var(--main-purple);
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+        .resource-label {
+            font-size: 0.8rem;
+            color: var(--placeholder-color);
+            margin-bottom: 1rem;
+        }
+        .server-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+        .server-actions button {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 5px;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-start { background-color: #27ae60; color: white; }
+        .btn-stop { background-color: #e74c3c; color: white; }
+        .btn-restart { background-color: #3498db; color: white; }
+        .no-servers {
+            text-align: center;
+            color: var(--placeholder-color);
+            padding: 2rem;
+            border: 2px dashed var(--card-bg);
+            border-radius: 15px;
+        }
+        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        #loadingOverlay.show { opacity: 1; pointer-events: all; }
+        .spinner { width: 60px; height: 60px; border: 5px solid var(--placeholder-color); border-top-color: var(--main-purple); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .sidebar { height: 100%; width: 280px; position: fixed; z-index: 1002; top: 0; left: 0; background-color: var(--card-bg); overflow-x: hidden; transition: 0.3s; transform: translateX(-100%); padding-top: 60px; border-right: 2px solid var(--main-purple); }
         .sidebar.open { transform: translateX(0); }
         .sidebar a { padding: 10px 15px; text-decoration: none; font-size: 1.2rem; color: var(--light-purple); display: block; transition: 0.2s; }
         .sidebar a:hover { color: var(--text-color); background-color: var(--main-purple); }
@@ -160,10 +239,7 @@
         .sidebar-locked a { background-color: #27ae60; color: white; border-radius: 5px; text-align: center; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1001; display: none; }
         .overlay.show { display: block; }
-        .modal-backdrop {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1003; 
-            opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
-        }
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1003; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
         .modal-backdrop.show { opacity: 1; pointer-events: all; }
         .modal-content { background-color: var(--card-bg); padding: 2rem; border-radius: 15px; border: 2px solid var(--main-purple); box-shadow: 0 0 25px rgba(156, 60, 255, 0.7); width: 90%; max-width: 500px; transform: scale(0.9); transition: transform 0.3s ease; }
         .modal-backdrop.show .modal-content { transform: scale(1); }
@@ -181,10 +257,6 @@
         .login-btn:hover { background-color: var(--light-purple); color: var(--bg-color); }
         .close-btn { background-color: transparent; color: var(--light-text); border: 1px solid var(--light-text); }
         .close-btn:hover { background-color: var(--light-text); color: var(--dark-bg); }
-        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
-        #loadingOverlay.show { opacity: 1; pointer-events: all; }
-        .spinner { width: 60px; height: 60px; border: 5px solid var(--placeholder-color); border-top-color: var(--main-purple); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -193,6 +265,9 @@
             <div class="menu-icon" id="openSidebarBtn"><i class="fas fa-bars"></i></div>
         </header>
         <img src="https://files.catbox.moe/oy87u3.jpg" alt="Logo" class="logo">
+        
+        <div id="serverList" class="server-list"></div>
+
         <h1 class="title">Panel Generator</h1>
         <form id="createPanelForm">
             <input type="text" id="panelUsernameInput" placeholder="Masukkan Username Panel Anda" required autocomplete="off">
@@ -203,8 +278,9 @@
             </select>
             <button id="createPanelBtn" type="submit" class="form-button">Create Panel</button>
         </form>
+        
         <footer class="footer">
-            <div class="status-display">STATUS: <span id="userRoleStatus">LOADING...</span></div>
+            <div class="status-display">STATUS: <span id="userRoleStatus">Loading...</span></div>
             <button id="logoutBtn" class="logout-btn-footer">ACCOUNT / LOGOUT</button>
             <p class="credit" style="margin-top:1rem;">Created By @rofikos</p>
         </footer>
@@ -251,6 +327,12 @@
         const resultModal = document.getElementById('resultModal');
         const closeModalBtn = document.getElementById('closeModalBtn');
         const loadingOverlay = document.getElementById('loadingOverlay');
+        const serverListDiv = document.getElementById('serverList');
+
+        let currentUser = null;
+        let idToken = null;
+        let unsubscribe = null;
+        let serverRefreshInterval = null;
 
         function showToast(message, type = 'success') {
             const colors = {
@@ -271,39 +353,101 @@
         closeSidebarBtn.onclick = closeSidebar;
         overlay.onclick = closeSidebar;
 
-        let currentUser = null;
-        let unsubscribe = null;
-
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
+            if (serverRefreshInterval) clearInterval(serverRefreshInterval);
             if (unsubscribe) unsubscribe();
+
             if (user) {
                 currentUser = user;
+                idToken = await getIdToken(user);
                 const userDocRef = doc(db, "users", user.uid);
                 unsubscribe = onSnapshot(userDocRef, (docSnap) => {
                     if (docSnap.exists()) {
-                        const latestUserData = docSnap.data();
-                        if (latestUserData.banned) {
+                        const userData = docSnap.data();
+                        if (userData.banned) {
                             showToast('Akun Anda di-ban.', 'error');
                             setTimeout(() => signOut(auth), 3000);
                         } else {
-                            loadUserDataAndSetupForm(latestUserData);
+                            loadUserDataAndSetupForm(userData);
                         }
-                    } else { 
-                        showToast('Data user tidak ditemukan.', 'error');
-                        signOut(auth); 
-                    }
-                }, (error) => {
-                    console.error("Error listening to user data:", error);
-                    showToast("Gagal memuat data user.", "error");
+                    } else { signOut(auth); }
                 });
-            } else { 
-                window.location.replace('/login.html'); 
+                loadMyServers();
+                serverRefreshInterval = setInterval(loadMyServers, 30000);
+            } else {
+                window.location.replace('/login.html');
             }
         });
 
+        async function loadMyServers() {
+            try {
+                const response = await fetch('/api/servers', { method: 'GET', headers: { 'Authorization': `Bearer ${idToken}` } });
+                const servers = await response.json();
+                if (!response.ok && servers.message) throw new Error(servers.message);
+
+                if (servers.length === 0) {
+                    serverListDiv.innerHTML = '<div class="no-servers"><h3>Kamu belum punya server.</h3><p>Silakan buat satu di bawah.</p></div>';
+                    return;
+                }
+                serverListDiv.innerHTML = '<h2 class="title" style="font-size: 1.5rem; margin-bottom: 1rem;">Server Kamu</h2>';
+                servers.forEach(server => {
+                    const state = server.stats.current_state || 'offline';
+                    const cpuUsage = server.stats.cpu_absolute || 0;
+                    const ramBytes = server.stats.memory_bytes || 0;
+                    const ramLimitBytes = server.limits.memory * 1024 * 1024;
+                    const ramUsagePercent = ramLimitBytes > 0 ? Math.round((ramBytes / ramLimitBytes) * 100) : 0;
+                    const cpuLimit = server.limits.cpu || 100;
+                    const cpuUsagePercent = cpuLimit > 0 ? (cpuUsage / cpuLimit) * 100 : 0;
+                    const ramText = `${(ramBytes / 1024 / 1024).toFixed(0)} MB / ${server.limits.memory} MB`;
+                    
+                    const card = document.createElement('div');
+                    card.className = 'server-card';
+                    card.innerHTML = `
+                        <div class="server-card-header">
+                            <div class="server-name">${server.name}</div>
+                            <div class="status ${state}">
+                                <div class="status-dot"></div>
+                                <span>${state}</span>
+                            </div>
+                        </div>
+                        <div class="resource-label">CPU: ${cpuUsage.toFixed(2)}% / ${cpuLimit}%</div>
+                        <div class="resource-bar"><div class="resource-bar-inner" style="width: ${cpuUsagePercent}%;"></div></div>
+                        <div class="resource-label">RAM: ${ramText} (${ramUsagePercent}%)</div>
+                        <div class="resource-bar"><div class="resource-bar-inner" style="width: ${ramUsagePercent}%;"></div></div>
+                        <div class="server-actions">
+                            <button class="btn-start" onclick="window.sendServerAction('${server.identifier}', 'start')" ${state === 'running' || state === 'starting' ? 'disabled' : ''}>Start</button>
+                            <button class="btn-restart" onclick="window.sendServerAction('${server.identifier}', 'restart')" ${state === 'offline' ? 'disabled' : ''}>Restart</button>
+                            <button class="btn-stop" onclick="window.sendServerAction('${server.identifier}', 'stop')" ${state === 'offline' ? 'disabled' : ''}>Stop</button>
+                        </div>
+                    `;
+                    serverListDiv.appendChild(card);
+                });
+            } catch (error) {
+                serverListDiv.innerHTML = `<div class="no-servers" style="color:var(--danger-color)">Gagal memuat server: ${error.message}</div>`;
+            }
+        }
+
+        window.sendServerAction = async function(serverId, action) {
+            showLoader();
+            try {
+                const response = await fetch('/api/servers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+                    body: JSON.stringify({ serverId, action })
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message);
+                showToast(result.message, 'success');
+                setTimeout(loadMyServers, 3000);
+            } catch (error) {
+                showToast(error.message, 'error');
+            } finally {
+                hideLoader();
+            }
+        };
+
         function loadUserDataAndSetupForm(userData) {
             userRoleStatus.textContent = userData.role.replace(/_/g, " ");
-
             sidebarContent.innerHTML = '';
             if (userData.role === 'owner' || userData.role === 'reseller_apk') {
                 const dashboardLink = document.createElement('a');
@@ -327,9 +471,7 @@
             if (userData.role === 'owner' || userData.role === 'reseller' || userData.role === 'reseller_apk') {
                 ramOptions = [...Array(10).keys()].map(i => `${i + 1}gb`);
                 ramOptions.push("unlimited");
-            } else { 
-                ramOptions = ["1gb", "2gb"]; 
-            }
+            } else { ramOptions = ["1gb", "2gb"]; }
             ramOptions.forEach(ram => {
                 const option = document.createElement('option');
                 option.value = ram;
@@ -364,15 +506,14 @@
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.message || 'Terjadi kesalahan.');
-                
                 document.getElementById('panelLoginUrlText').textContent = data.loginUrl;
                 document.getElementById('panelLoginUrlLink').href = data.loginUrl;
                 document.getElementById('panelUsername').textContent = data.username;
                 document.getElementById('panelPassword').textContent = data.password;
-                
-                createPanelForm.reset();
-                showToast('Panel berhasil dibuat!', 'success');
                 showModal();
+                createPanelForm.reset();
+                showToast('Panel berhasil dibuat! Daftar server akan diperbarui.', 'success');
+                setTimeout(loadMyServers, 1000);
             } catch (error) {
                 showToast(`Gagal: ${error.message}`, 'error');
             } finally {
