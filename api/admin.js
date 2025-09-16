@@ -83,26 +83,7 @@ module.exports = async (req, res) => {
                 }
                 return res.status(403).json({ message: 'Aksi tidak diizinkan.' });
             }
-
-            case 'createCoupon': {
-                if (loggedInUserRole !== 'owner') return res.status(403).json({ message: 'Hanya owner yang bisa membuat kupon.' });
-                const { code, capacity, rewardRam } = payload;
-                if (!code || !capacity || !rewardRam) return res.status(400).json({ message: "Semua field wajib diisi." });
-
-                const couponRef = db.collection('coupons').doc(code.toUpperCase());
-                const doc = await couponRef.get();
-                if (doc.exists) return res.status(409).json({ message: `Kupon dengan kode '${code}' sudah ada.` });
-
-                await couponRef.set({
-                    code: code.toUpperCase(),
-                    capacity: parseInt(capacity, 10),
-                    rewardRam: rewardRam,
-                    redeemedBy: [],
-                    createdAt: new Date()
-                });
-                return res.status(201).json({ message: `Kupon '${code.toUpperCase()}' berhasil dibuat!` });
-            }
-
+            
             case 'getAllServers': {
                 if (loggedInUserRole !== 'owner') return res.status(403).json({ message: 'Hanya owner yang bisa melihat semua server.' });
                 const { domain, apiKey } = pterodactylConfig;
@@ -125,16 +106,61 @@ module.exports = async (req, res) => {
             case 'clearAllServers': {
                 if (loggedInUserRole !== 'owner') return res.status(403).json({ message: 'Hanya owner yang bisa clear all servers.' });
                 const { domain, apiKey, safeUsers } = pterodactylConfig;
+                
                 const serverRes = await fetch(`${domain}/api/application/servers?include=user`, { headers: { 'Authorization': `Bearer ${apiKey}` } });
                 const serverData = await serverRes.json();
                 if (!serverRes.ok) throw new Error("Gagal mengambil daftar server.");
-                const serversToDelete = serverData.data.filter(s => !safeUsers.includes(s.attributes.relationships.user.attributes.id));
+                
+                const serversToDelete = serverData.data.filter(server => {
+                    const owner = server.attributes.relationships.user.attributes;
+                    return !safeUsers.includes(owner.id) && !safeUsers.includes(owner.email);
+                });
+
                 if (serversToDelete.length === 0) return res.status(200).json({ message: "Tidak ada server yang perlu dihapus." });
+
+                const userIdsToDelete = [...new Set(serversToDelete.map(server => server.attributes.user))];
+                let deletedServersCount = 0;
+                let deletedUsersCount = 0;
+
                 for (const server of serversToDelete) {
                     await fetch(`${domain}/api/application/servers/${server.attributes.id}/force`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${apiKey}` } });
+                    deletedServersCount++;
                     await new Promise(resolve => setTimeout(resolve, 200));
                 }
-                return res.status(200).json({ message: `${serversToDelete.length} server berhasil di-clear.` });
+                
+                for (const userId of userIdsToDelete) {
+                    // Cek lagi untuk memastikan user ini bukan safeUser
+                    const isSafe = safeUsers.includes(userId);
+                    if (!isSafe) {
+                        const userDeleteRes = await fetch(`${domain}/api/application/users/${userId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${apiKey}` } });
+                        if(userDeleteRes.ok) deletedUsersCount++;
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                    }
+                }
+                
+                return res.status(200).json({ message: `${deletedServersCount} server & ${deletedUsersCount} user terkait berhasil di-clear.` });
+            }
+
+            case 'clearAllUsers': {
+                if (loggedInUserRole !== 'owner') return res.status(403).json({ message: 'Hanya owner yang bisa clear all users.' });
+                const { domain, apiKey, safeUsers } = pterodactylConfig;
+                
+                const usersRes = await fetch(`${domain}/api/application/users`, { headers: { 'Authorization': `Bearer ${apiKey}` } });
+                const usersData = await usersRes.json();
+                if (!usersRes.ok) throw new Error("Gagal mengambil daftar user.");
+                
+                const usersToDelete = usersData.data.filter(user => {
+                    const attrs = user.attributes;
+                    return !safeUsers.includes(attrs.id) && !safeUsers.includes(attrs.email);
+                });
+
+                if (usersToDelete.length === 0) return res.status(200).json({ message: "Tidak ada user Pterodactyl yang perlu dihapus." });
+
+                for (const user of usersToDelete) {
+                    await fetch(`${domain}/api/application/users/${user.attributes.id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${apiKey}` } });
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+                return res.status(200).json({ message: `${usersToDelete.length} user Pterodactyl berhasil di-clear.` });
             }
 
             default:
