@@ -67,26 +67,19 @@
             <div class="menu-icon" id="openSidebarBtn"><i class="fas fa-bars"></i></div>
             <h1 id="pageTitle">Memuat Dashboard...</h1>
         </header>
-        <div id="dashboardContent">
-        </div>
+        <div id="dashboardContent"></div>
     </div>
-
     <nav id="sidebar" class="sidebar">
         <a href="javascript:void(0)" class="closebtn" id="closeSidebarBtn">&times;</a>
         <div id="sidebarContent"></div>
     </nav>
     <div id="overlay" class="overlay"></div>
-
     <div class="modal-backdrop" id="customModal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modalTitle">Judul Modal</h3>
-            </div>
+            <div class="modal-header"><h3 id="modalTitle"></h3></div>
             <div class="modal-body">
-                <p id="modalMessage">Pesan di sini.</p>
-                <div id="modalPrompt" class="hidden">
-                    <input type="text" id="modalInput" autocomplete="off">
-                </div>
+                <p id="modalMessage"></p>
+                <div id="modalPrompt" class="hidden"><input type="text" id="modalInput" autocomplete="off"></div>
             </div>
             <div class="modal-footer">
                 <button id="modalCancelBtn" class="btn-modal-cancel">Batal</button>
@@ -94,10 +87,7 @@
             </div>
         </div>
     </div>
-    
-    <div id="loadingOverlay">
-        <div class="spinner"></div>
-    </div>
+    <div id="loadingOverlay"><div class="spinner"></div></div>
 
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script type="module">
@@ -127,26 +117,14 @@
         let unsubscribeNotifications = null;
         let pendingRequests = new Set();
 
-        function openSidebar() {
-            sidebar.classList.add('open');
-            overlay.classList.add('show');
-        }
-
-        function closeSidebar() {
-            sidebar.classList.remove('open');
-            overlay.classList.remove('show');
-        }
-
+        function openSidebar() { sidebar.classList.add('open'); overlay.classList.add('show'); }
+        function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('show'); }
         openSidebarBtn.onclick = openSidebar;
         closeSidebarBtn.onclick = closeSidebar;
         overlay.onclick = closeSidebar;
 
         function showToast(message, type = 'success') {
-            const colors = {
-                success: 'linear-gradient(to right, #00b09b, #96c93d)',
-                error: 'linear-gradient(to right, #ff5f6d, #ffc371)',
-                info: 'linear-gradient(to right, #0072ff, #00c6ff)'
-            };
+            const colors = { success: 'linear-gradient(to right, #00b09b, #96c93d)', error: 'linear-gradient(to right, #ff5f6d, #ffc371)', info: 'linear-gradient(to right, #0072ff, #00c6ff)' };
             Toastify({ text: message, duration: 3000, close: true, gravity: "top", position: "right", stopOnFocus: true, style: { background: colors[type] || colors.info } }).showToast();
         }
 
@@ -162,10 +140,7 @@
             modalPrompt.classList.add('hidden');
             customModal.classList.add('show');
             return new Promise(resolve => {
-                modalConfirmBtn.onclick = () => {
-                    customModal.classList.remove('show');
-                    resolve(true);
-                };
+                modalConfirmBtn.onclick = () => { customModal.classList.remove('show'); resolve(true); };
             });
         }
 
@@ -240,12 +215,8 @@
 
         function setupDashboard() {
             pageTitle.textContent = currentUserRole === 'owner' ? 'Admin Dashboard' : 'Reseller APK Dashboard';
-            sidebarContent.innerHTML = `
-                <a href="/index.html">Create Panel</a>
-                <a href="#" id="logoutSidebarBtn">Logout</a>
-            `;
+            sidebarContent.innerHTML = `<a href="/index.html">Create Panel</a><a href="#" id="logoutSidebarBtn">Logout</a>`;
             document.getElementById('logoutSidebarBtn').onclick = (e) => { e.preventDefault(); signOut(auth); };
-            
             let contentHTML = `
                 <div class="card">
                     <h2>User Management</h2>
@@ -256,8 +227,7 @@
                             <tbody><tr><td colspan="4" style="text-align:center;">Memuat data...</td></tr></tbody>
                         </table>
                     </div>
-                </div>
-            `;
+                </div>`;
             if (currentUserRole === 'owner') {
                 contentHTML += `
                 <div class="card" id="serverManagementCard">
@@ -273,16 +243,11 @@
                     <h2>Zona Berbahaya</h2>
                     <p style="margin-bottom: 1rem;">Tombol ini akan menghapus SEMUA server kecuali punya admin.</p>
                     <button class="btn-danger" onclick="window.clearAllServers()">Clear All Servers</button>
-                </div>
-                `;
+                </div>`;
             }
             dashboardContent.innerHTML = contentHTML;
-            
-            if (currentUserRole === 'owner') {
-                loadAllServers();
-            } else if (currentUserRole === 'reseller_apk') {
-                setupRealtimeNotifications();
-            }
+            if (currentUserRole === 'owner') loadAllServers();
+            else if (currentUserRole === 'reseller_apk') setupRealtimeNotifications();
             loadPendingRequests().then(loadAllUsers);
         }
 
@@ -296,8 +261,7 @@
                     if (data.status !== 'pending' && !data.notified) {
                         const statusText = data.status === 'approved' ? 'DISETUJUI' : 'DITOLAK';
                         showToast(`Permintaan untuk ${data.targetUsername} telah ${statusText}`, 'info');
-                        const docRef = doc(db, "roleChangeRequests", change.doc.id);
-                        updateDoc(docRef, { notified: true });
+                        updateDoc(doc(db, "roleChangeRequests", change.doc.id), { notified: true });
                         needsReload = true;
                     }
                 });
@@ -318,25 +282,19 @@
         }
 
         async function apiCall(endpoint, options = {}) {
-            const defaultOptions = { method: 'GET', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` } };
-            const response = await fetch(`/api/${endpoint}`, { ...defaultOptions, ...options });
-            if (!response.ok) {
-                const errorText = await response.text();
-                try {
-                    const jsonError = JSON.parse(errorText);
-                    throw new Error(jsonError.message || 'Error tidak diketahui');
-                } catch (e) {
-                    throw new Error("Terjadi error di server (respons bukan JSON). Cek log Vercel.");
-                }
-            }
-            return response.json();
+            const defaultOptions = { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` }, body: JSON.stringify({ action: 'default' }) };
+            const finalOptions = { ...defaultOptions, ...options };
+            const response = await fetch(`/api/${endpoint}`, finalOptions);
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Error tidak diketahui');
+            return data;
         }
 
         async function loadAllUsers() {
             const tableBody = document.getElementById('usersTable').querySelector('tbody');
             tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Memuat data user...</td></tr>`;
             try {
-                const users = await apiCall('admin/getAllUsers');
+                const users = await apiCall('admin', { body: JSON.stringify({ action: 'getAllUsers' }) });
                 tableBody.innerHTML = '';
                 users.forEach(user => {
                     if (user.role === 'owner') return;
@@ -374,7 +332,7 @@
         async function loadAllServers() {
             const tableBody = document.getElementById('serversTable').querySelector('tbody');
             try {
-                const servers = await apiCall('admin/getAllServers');
+                const servers = await apiCall('admin', { body: JSON.stringify({ action: 'getAllServers' }) });
                 tableBody.innerHTML = '';
                 servers.forEach(server => {
                     const attr = server.attributes;
@@ -394,21 +352,16 @@
             const trs = table.getElementsByTagName('tr');
             for (let i = 1; i < trs.length; i++) {
                 const td = trs[i].getElementsByTagName('td')[0];
-                if (td) {
-                    if (td.textContent.toLowerCase().indexOf(filter) > -1) trs[i].style.display = "";
-                    else trs[i].style.display = "none";
-                }
+                if (td) { if (td.textContent.toLowerCase().indexOf(filter) > -1) trs[i].style.display = ""; else trs[i].style.display = "none"; }
             }
         }
 
         async function updateUserState(username, state) {
             showLoader();
             try {
-                const result = await apiCall('admin/setUserState', { method: 'POST', body: JSON.stringify({ username, ...state }) });
+                const result = await apiCall('admin', { body: JSON.stringify({ action: 'setUserState', payload: { username, ...state } }) });
                 showToast(result.message, 'success');
-                if (currentUserRole === 'reseller_apk') {
-                    await loadPendingRequests();
-                }
+                if (currentUserRole === 'reseller_apk') await loadPendingRequests();
                 loadAllUsers();
             } catch (error) {
                 showToast(error.message, 'error');
@@ -418,7 +371,7 @@
         }
         
         window.setUserRole = async (username, role) => {
-            let actionText = `mengubah role untuk ${username}`;
+            const actionText = (role === 'user') ? `mencabut role dari ${username}` : `memberikan role ${role} kepada ${username}`;
             const confirmed = await showCustomConfirm('Konfirmasi Aksi', `Yakin ingin ${actionText}?`);
             if (confirmed) updateUserState(username, { role });
         };
@@ -429,15 +382,15 @@
         };
 
         window.deleteServer = async function(serverId) {
-            const confirmed = await showCustomConfirm('Konfirmasi Hapus', `Yakin ingin menghapus server ID ${serverId} secara permanen?`, { isDanger: true, confirmText: 'Hapus' });
+            const confirmed = await showCustomConfirm('Konfirmasi Hapus', `Yakin ingin menghapus server ID ${serverId}?`, { isDanger: true, confirmText: 'Hapus' });
             if (!confirmed) return;
             showLoader();
             try {
-                const result = await apiCall('admin/deleteServer', { method: 'POST', body: JSON.stringify({ serverId }) });
-                await showToast(result.message, 'success');
+                const result = await apiCall('admin', { body: JSON.stringify({ action: 'deleteServer', payload: { serverId } }) });
+                showToast(result.message, 'success');
                 loadAllServers();
             } catch (error) {
-                await showToast(error.message, 'error');
+                showToast(error.message, 'error');
             } finally {
                 hideLoader();
             }
@@ -455,13 +408,18 @@
             }
             showLoader();
             try {
-                const result = await apiCall('admin/clearAllServers', { method: 'POST' });
-                await showToast(result.message, 'success');
+                const result = await apiCall('admin', { body: JSON.stringify({ action: 'clearAllServers' }) });
+                showToast(result.message, 'success');
                 loadAllServers();
             } catch (error) {
-                await showToast(error.message, 'error');
+                showToast(error.message, 'error');
             } finally {
-                hideLoader();
+                // To avoid errors, ensure the button exists before trying to access it
+                const button = document.querySelector('.card[style*="border-color: var(--danger-color)"] button');
+                if(button) {
+                    button.disabled = false;
+                    button.textContent = "Clear All Servers";
+                }
             }
         }
     </script>
