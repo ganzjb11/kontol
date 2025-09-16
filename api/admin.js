@@ -42,17 +42,24 @@ module.exports = async (req, res) => {
 
     try {
         const { action, payload } = req.body;
-        const { uid: initiatorUid, userData } = await verifyUser(req, 'reseller_apk');
+        // Verifikasi dasar dulu, pengecekan role spesifik akan ada di dalam setiap case
+        const { userData } = await verifyUser(req);
         const loggedInUserRole = userData.role;
 
         switch (action) {
             case 'getAllUsers': {
+                if (loggedInUserRole !== 'owner' && loggedInUserRole !== 'reseller_apk') {
+                    return res.status(403).json({ message: 'Akses ditolak.' });
+                }
                 const usersSnapshot = await db.collection('users').get();
                 const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 return res.status(200).json(users);
             }
 
             case 'setUserState': {
+                if (loggedInUserRole !== 'owner' && loggedInUserRole !== 'reseller_apk') {
+                    return res.status(403).json({ message: 'Akses ditolak.' });
+                }
                 const { username: targetUsername, role: newRole, banned } = payload;
                 if (!targetUsername) return res.status(400).json({ message: 'Username target wajib diisi.' });
 
@@ -68,7 +75,7 @@ module.exports = async (req, res) => {
                     if (newRole === 'reseller_apk' || newRole === 'owner') return res.status(403).json({ message: 'Akses ditolak. Anda tidak bisa mengangkat ke role ini.' });
                     
                     const requestRef = db.collection('roleChangeRequests').doc();
-                    const requestData = { id: requestRef.id, initiatorUid, initiatorUsername: userData.username, targetUid: targetUserDoc.id, targetUsername: targetUserDoc.data().username, currentRole: targetUserDoc.data().role, newRole, status: 'pending', createdAt: new Date() };
+                    const requestData = { id: requestRef.id, initiatorUid: userData.uid, initiatorUsername: userData.username, targetUid: targetUserDoc.id, targetUsername: targetUserDoc.data().username, currentRole: targetUserDoc.data().role, newRole, status: 'pending', createdAt: new Date() };
                     await requestRef.set(requestData);
                     await sendTelegramNotification(requestData);
                     return res.status(200).json({ message: `Permintaan untuk mengubah role ${targetUsername} telah dikirim.` });
@@ -129,7 +136,7 @@ module.exports = async (req, res) => {
                 return res.status(400).json({ message: 'Aksi tidak diketahui.' });
         }
     } catch (error) {
-        console.error(`Error di API Admin, Aksi: ${req.body.action}`, error);
+        console.error(`Error di API Admin, Aksi: ${req.body.action || 'unknown'}`, error);
         res.status(500).json({ message: error.message });
     }
 };
