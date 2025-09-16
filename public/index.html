@@ -6,6 +6,7 @@
     <title>Panel Generator</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <style>
         :root {
             --bg-color: #100a1c;
@@ -145,76 +146,19 @@
             transition: all 0.3s ease;
         }
         .sidebar {
-            height: 100%;
-            width: 280px;
-            position: fixed;
-            z-index: 1002;
-            top: 0;
-            left: 0;
-            background-color: var(--card-bg);
-            overflow-x: hidden;
-            transition: 0.3s;
-            transform: translateX(-100%);
-            padding-top: 60px;
-            border-right: 2px solid var(--main-purple);
+            height: 100%; width: 280px; position: fixed; z-index: 1002; top: 0; left: 0; background-color: var(--card-bg); overflow-x: hidden; transition: 0.3s; transform: translateX(-100%); padding-top: 60px; border-right: 2px solid var(--main-purple);
         }
-        .sidebar.open {
-            transform: translateX(0);
-        }
-        .sidebar a {
-            padding: 10px 15px;
-            text-decoration: none;
-            font-size: 1.2rem;
-            color: var(--light-purple);
-            display: block;
-            transition: 0.2s;
-        }
-        .sidebar a:hover {
-            color: var(--text-color);
-            background-color: var(--main-purple);
-        }
-        .sidebar .closebtn {
-            position: absolute;
-            top: 0;
-            right: 25px;
-            font-size: 36px;
-            margin-left: 50px;
-            color: var(--text-color);
-        }
-        .sidebar-locked {
-            padding: 15px;
-            text-align: center;
-        }
-        .sidebar-locked p {
-            color: var(--placeholder-color);
-            margin-bottom: 1rem;
-        }
-        .sidebar-locked strong {
-            color: var(--light-purple);
-            text-transform: capitalize;
-        }
-        .sidebar-locked a {
-            background-color: #27ae60;
-            color: white;
-            border-radius: 5px;
-            text-align: center;
-        }
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            z-index: 1001;
-            display: none;
-        }
-        .overlay.show {
-            display: block;
-        }
-        .modal-backdrop {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1003; opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
-        }
+        .sidebar.open { transform: translateX(0); }
+        .sidebar a { padding: 10px 15px; text-decoration: none; font-size: 1.2rem; color: var(--light-purple); display: block; transition: 0.2s; }
+        .sidebar a:hover { color: var(--text-color); background-color: var(--main-purple); }
+        .sidebar .closebtn { position: absolute; top: 0; right: 25px; font-size: 36px; margin-left: 50px; color: var(--text-color); }
+        .sidebar-locked { padding: 15px; text-align: center; }
+        .sidebar-locked p { color: var(--placeholder-color); margin-bottom: 1rem; }
+        .sidebar-locked strong { color: var(--light-purple); text-transform: capitalize; }
+        .sidebar-locked a { background-color: #27ae60; color: white; border-radius: 5px; text-align: center; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1001; display: none; }
+        .overlay.show { display: block; }
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1003; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
         .modal-backdrop.show { opacity: 1; pointer-events: all; }
         .modal-content { background-color: var(--card-bg); padding: 2rem; border-radius: 15px; border: 2px solid var(--main-purple); box-shadow: 0 0 25px rgba(156, 60, 255, 0.7); width: 90%; max-width: 500px; transform: scale(0.9); transition: transform 0.3s ease; }
         .modal-backdrop.show .modal-content { transform: scale(1); }
@@ -232,6 +176,10 @@
         .login-btn:hover { background-color: var(--light-purple); color: var(--bg-color); }
         .close-btn { background-color: transparent; color: var(--light-text); border: 1px solid var(--light-text); }
         .close-btn:hover { background-color: var(--light-text); color: var(--dark-bg); }
+        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        #loadingOverlay.show { opacity: 1; pointer-events: all; }
+        .spinner { width: 60px; height: 60px; border: 5px solid var(--placeholder-color); border-top-color: var(--main-purple); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -275,6 +223,11 @@
         </div>
     </div>
 
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script type="module">
         import { auth, db } from './firebase-config.js';
         import { onAuthStateChanged, signOut, getIdToken } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
@@ -292,6 +245,29 @@
         const ramSelect = document.getElementById('panelRamSelect');
         const resultModal = document.getElementById('resultModal');
         const closeModalBtn = document.getElementById('closeModalBtn');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+
+        function showToast(message, type = 'success') {
+            const colors = {
+                success: 'linear-gradient(to right, #00b09b, #96c93d)',
+                error: 'linear-gradient(to right, #ff5f6d, #ffc371)',
+                info: 'linear-gradient(to right, #0072ff, #00c6ff)'
+            };
+            Toastify({
+                text: message,
+                duration: 3000,
+                close: true,
+                gravity: "top",
+                position: "right",
+                stopOnFocus: true,
+                style: {
+                    background: colors[type] || colors.info,
+                }
+            }).showToast();
+        }
+        
+        const showLoader = () => loadingOverlay.classList.add('show');
+        const hideLoader = () => loadingOverlay.classList.remove('show');
 
         function openSidebar() {
             sidebar.classList.add('open');
@@ -319,8 +295,8 @@
                     if (docSnap.exists()) {
                         const latestUserData = docSnap.data();
                         if (latestUserData.banned) {
-                            alert('Akun Anda di-ban.');
-                            signOut(auth);
+                            showToast('Akun Anda di-ban.', 'error');
+                            setTimeout(() => signOut(auth), 3000);
                         } else {
                             loadUserDataAndSetupForm(latestUserData);
                         }
@@ -381,9 +357,10 @@
             const serverName = document.getElementById('serverNameInput').value.trim();
             const ram = document.getElementById('panelRamSelect').value;
             if (!username || !password || !ram) {
-                alert('Username, Password, dan RAM wajib diisi.'); return;
+                showToast('Username, Password, dan RAM wajib diisi.', 'error'); return;
             }
-            createPanelBtn.disabled = true; createPanelBtn.textContent = 'Processing...';
+            createPanelBtn.disabled = true;
+            showLoader();
             try {
                 const idToken = await getIdToken(currentUser);
                 const response = await fetch('/api/create-panel', {
@@ -399,11 +376,12 @@
                 document.getElementById('panelPassword').textContent = data.password;
                 showModal();
                 createPanelForm.reset();
+                showToast('Panel berhasil dibuat!', 'success');
             } catch (error) {
-                alert(`Gagal: ${error.message}`);
+                showToast(`Gagal: ${error.message}`, 'error');
             } finally {
                 createPanelBtn.disabled = false;
-                createPanelBtn.textContent = 'Create Panel';
+                hideLoader();
             }
         });
 
@@ -418,6 +396,7 @@
                  navigator.clipboard.writeText(textElement.textContent).then(() => {
                      const originalIcon = button.innerHTML;
                      button.innerHTML = '✅';
+                     showToast('Teks disalin!', 'info');
                      setTimeout(() => { button.innerHTML = originalIcon; }, 1500);
                  });
              }
