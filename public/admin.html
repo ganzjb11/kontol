@@ -6,6 +6,7 @@
     <title>Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <style>
         :root { --bg-color: #100a1c; --main-purple: #9c3cff; --light-purple: #c89cff; --card-bg: #1e1233; --text-color: #f0f0f0; --placeholder-color: #8c829e; --danger-color: #f44336; --warning-color: #ffc107; --info-color: #17a2b8; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -54,6 +55,10 @@
         .btn-modal-cancel { background-color: #ddd; color: var(--bg-color); }
         .btn-modal-confirm { background-color: var(--main-purple); color: var(--text-color); }
         .btn-modal-confirm.danger { background-color: var(--danger-color); color: white; }
+        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        #loadingOverlay.show { opacity: 1; pointer-events: all; }
+        .spinner { width: 60px; height: 60px; border: 5px solid var(--placeholder-color); border-top-color: var(--main-purple); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -89,7 +94,12 @@
             </div>
         </div>
     </div>
+    
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
 
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script type="module">
         import { auth, db } from './firebase-config.js';
         import { onAuthStateChanged, signOut, getIdToken } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
@@ -109,6 +119,7 @@
         const modalCancelBtn = document.getElementById('modalCancelBtn');
         const modalPrompt = document.getElementById('modalPrompt');
         const modalInput = document.getElementById('modalInput');
+        const loadingOverlay = document.getElementById('loadingOverlay');
         
         let idToken = null;
         let currentUserRole = null;
@@ -129,6 +140,18 @@
         openSidebarBtn.onclick = openSidebar;
         closeSidebarBtn.onclick = closeSidebar;
         overlay.onclick = closeSidebar;
+
+        function showToast(message, type = 'success') {
+            const colors = {
+                success: 'linear-gradient(to right, #00b09b, #96c93d)',
+                error: 'linear-gradient(to right, #ff5f6d, #ffc371)',
+                info: 'linear-gradient(to right, #0072ff, #00c6ff)'
+            };
+            Toastify({ text: message, duration: 3000, close: true, gravity: "top", position: "right", stopOnFocus: true, style: { background: colors[type] || colors.info } }).showToast();
+        }
+
+        const showLoader = () => loadingOverlay.classList.add('show');
+        const hideLoader = () => loadingOverlay.classList.remove('show');
 
         function showCustomAlert(message, title = "Informasi") {
             modalTitle.textContent = title;
@@ -152,20 +175,12 @@
             modalCancelBtn.classList.remove('hidden');
             modalConfirmBtn.textContent = options.confirmText || 'OKE';
             modalConfirmBtn.className = 'btn-modal-confirm';
-            if (options.isDanger) {
-                modalConfirmBtn.classList.add('danger');
-            }
+            if (options.isDanger) modalConfirmBtn.classList.add('danger');
             modalPrompt.classList.add('hidden');
             customModal.classList.add('show');
             return new Promise(resolve => {
-                modalConfirmBtn.onclick = () => {
-                    customModal.classList.remove('show');
-                    resolve(true);
-                };
-                modalCancelBtn.onclick = () => {
-                    customModal.classList.remove('show');
-                    resolve(false);
-                };
+                modalConfirmBtn.onclick = () => { customModal.classList.remove('show'); resolve(true); };
+                modalCancelBtn.onclick = () => { customModal.classList.remove('show'); resolve(false); };
             });
         }
         
@@ -192,10 +207,7 @@
                 };
                 modalConfirmBtn.onclick = confirmAction;
                 modalInput.onkeyup = (event) => { if(event.key === 'Enter') confirmAction(); };
-                modalCancelBtn.onclick = () => {
-                    customModal.classList.remove('show');
-                    resolve(null);
-                };
+                modalCancelBtn.onclick = () => { customModal.classList.remove('show'); resolve(null); };
             });
         }
         
@@ -221,9 +233,8 @@
                 const data = await response.json();
                 currentUserRole = data.role;
             } catch (error) {
-                showCustomAlert(error.message, "Error").then(() => {
-                    window.location.replace('/login.html');
-                });
+                showToast(error.message, 'error');
+                setTimeout(() => window.location.replace('/login.html'), 3000);
             }
         }
 
@@ -260,7 +271,7 @@
                 </div>
                 <div class="card" style="border-color: var(--danger-color);">
                     <h2>Zona Berbahaya</h2>
-                    <p style="margin-bottom: 1rem;">Tombol ini akan menghapus SEMUA server kecuali yang dimiliki oleh user aman di config.</p>
+                    <p style="margin-bottom: 1rem;">Tombol ini akan menghapus SEMUA server kecuali punya admin.</p>
                     <button class="btn-danger" onclick="window.clearAllServers()">Clear All Servers</button>
                 </div>
                 `;
@@ -284,7 +295,7 @@
                     const data = change.doc.data();
                     if (data.status !== 'pending' && !data.notified) {
                         const statusText = data.status === 'approved' ? 'DISETUJUI' : 'DITOLAK';
-                        showCustomAlert(`Permintaan Anda untuk mengubah role ${data.targetUsername} telah ${statusText} oleh Owner.`, "Pemberitahuan");
+                        showToast(`Permintaan untuk ${data.targetUsername} telah ${statusText}`, 'info');
                         const docRef = doc(db, "roleChangeRequests", change.doc.id);
                         updateDoc(docRef, { notified: true });
                         needsReload = true;
@@ -329,11 +340,9 @@
                 tableBody.innerHTML = '';
                 users.forEach(user => {
                     if (user.role === 'owner') return;
-                    
                     const tr = document.createElement('tr');
                     const isBanned = user.banned;
                     let actionButtons = '';
-                    
                     if (currentUserRole === 'owner') {
                         if (user.role === 'user') {
                             actionButtons += `<button class="btn-make-reseller" onclick="window.setUserRole('${user.username}', 'reseller')">Jadi Reseller Panel</button>`;
@@ -354,13 +363,7 @@
                             actionButtons += `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')" ${isPending ? 'disabled' : ''}>${isPending ? 'Menunggu Konfirmasi...' : 'Cabut Reseller Panel'}</button>`;
                         }
                     }
-                    
-                    tr.innerHTML = `
-                        <td>${user.username}</td>
-                        <td>${user.role}</td>
-                        <td>${isBanned ? '<span style="color:var(--danger-color);">Banned</span>' : '<span style="color:#4caf50;">Aktif</span>'}</td>
-                        <td class="actions">${actionButtons}</td>
-                    `;
+                    tr.innerHTML = `<td>${user.username}</td><td>${user.role}</td><td>${isBanned ? '<span style="color:var(--danger-color);">Banned</span>' : '<span style="color:#4caf50;">Aktif</span>'}</td><td class="actions">${actionButtons}</td>`;
                     tableBody.appendChild(tr);
                 });
             } catch (error) {
@@ -392,63 +395,51 @@
             for (let i = 1; i < trs.length; i++) {
                 const td = trs[i].getElementsByTagName('td')[0];
                 if (td) {
-                    if (td.textContent.toLowerCase().indexOf(filter) > -1) {
-                        trs[i].style.display = "";
-                    } else {
-                        trs[i].style.display = "none";
-                    }
+                    if (td.textContent.toLowerCase().indexOf(filter) > -1) trs[i].style.display = "";
+                    else trs[i].style.display = "none";
                 }
             }
         }
 
         async function updateUserState(username, state) {
+            showLoader();
             try {
-                const result = await apiCall('admin/setUserState', {
-                    method: 'POST',
-                    body: JSON.stringify({ username, ...state })
-                });
-                await showCustomAlert(result.message);
+                const result = await apiCall('admin/setUserState', { method: 'POST', body: JSON.stringify({ username, ...state }) });
+                showToast(result.message, 'success');
                 if (currentUserRole === 'reseller_apk') {
                     await loadPendingRequests();
                 }
                 loadAllUsers();
             } catch (error) {
-                await showCustomAlert(`Error: ${error.message}`, 'Gagal');
+                showToast(error.message, 'error');
+            } finally {
+                hideLoader();
             }
         }
         
         window.setUserRole = async (username, role) => {
             let actionText = `mengubah role untuk ${username}`;
-            if (currentUserRole === 'owner') {
-               actionText = (role === 'user') ? `mencabut role dari ${username}` : `memberikan role ${role} kepada ${username}`;
-            } else {
-                actionText = role === 'reseller' ? `menjadikan ${username} Reseller Panel` : `mencabut role Reseller Panel dari ${username}`;
-            }
             const confirmed = await showCustomConfirm('Konfirmasi Aksi', `Yakin ingin ${actionText}?`);
-            if (confirmed) {
-                updateUserState(username, { role });
-            }
+            if (confirmed) updateUserState(username, { role });
         };
 
         window.setBanStatus = async (username, banned) => {
             const confirmed = await showCustomConfirm(banned ? 'Konfirmasi Ban' : 'Konfirmasi Unban', `Yakin ingin ${banned ? 'BAN' : 'UNBAN'} user ${username}?`, { isDanger: banned, confirmText: banned ? 'Ban' : 'Unban' });
-            if (confirmed) {
-                updateUserState(username, { banned });
-            }
+            if (confirmed) updateUserState(username, { banned });
         };
 
         window.deleteServer = async function(serverId) {
             const confirmed = await showCustomConfirm('Konfirmasi Hapus', `Yakin ingin menghapus server ID ${serverId} secara permanen?`, { isDanger: true, confirmText: 'Hapus' });
             if (!confirmed) return;
+            showLoader();
             try {
-                const result = await apiCall('admin/deleteServer', {
-                    method: 'POST',
-                    body: JSON.stringify({ serverId })
-                });
-                await showCustomAlert(result.message);
+                const result = await apiCall('admin/deleteServer', { method: 'POST', body: JSON.stringify({ serverId }) });
+                await showToast(result.message, 'success');
                 loadAllServers();
             } catch (error) {
-                await showCustomAlert(error.message, 'Error');
+                await showToast(error.message, 'error');
+            } finally {
+                hideLoader();
             }
         }
 
@@ -462,19 +453,15 @@
                 if(promptResult === false) await showCustomAlert('Konfirmasi salah. Aksi dibatalkan.', 'Gagal');
                 return;
             }
-            const button = document.querySelector('.card[style*="border-color: var(--danger-color)"] button');
-            if(!button) return;
+            showLoader();
             try {
-                button.disabled = true;
-                button.textContent = "Menghapus...";
                 const result = await apiCall('admin/clearAllServers', { method: 'POST' });
-                await showCustomAlert(result.message);
+                await showToast(result.message, 'success');
                 loadAllServers();
             } catch (error) {
-                await showCustomAlert(error.message, 'Error');
+                await showToast(error.message, 'error');
             } finally {
-                button.disabled = false;
-                button.textContent = "Clear All Servers";
+                hideLoader();
             }
         }
     </script>
