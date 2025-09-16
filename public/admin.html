@@ -67,8 +67,7 @@
             <div class="menu-icon" id="openSidebarBtn"><i class="fas fa-bars"></i></div>
             <h1 id="pageTitle">Memuat Dashboard...</h1>
         </header>
-        <div id="dashboardContent">
-        </div>
+        <div id="dashboardContent"></div>
     </div>
     <nav id="sidebar" class="sidebar">
         <a href="javascript:void(0)" class="closebtn" id="closeSidebarBtn">&times;</a>
@@ -222,12 +221,12 @@
         }
         function closeCreateCouponModal() { createCouponModal.classList.remove('show'); }
         document.getElementById('modalCouponCancelBtn').onclick = closeCreateCouponModal;
-        document.getElementById('modalCouponConfirmBtn').onclick = () => {
-             document.getElementById('createCouponForm').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-        };
+        
+        // FIX: Mengubah cara pemanggilan fungsi create coupon
+        document.getElementById('modalCouponConfirmBtn').onclick = handleCreateCoupon;
         
         async function handleCreateCoupon(event) {
-            event.preventDefault();
+            // event.preventDefault() tidak dibutuhkan lagi jika dipanggil langsung
             const code = document.getElementById('couponCodeInput').value.trim();
             const capacity = document.getElementById('couponCapacityInput').value;
             const rewardRam = document.getElementById('couponRamSelect').value;
@@ -249,7 +248,6 @@
                 hideLoader();
             }
         }
-        document.getElementById('createCouponForm').addEventListener('submit', handleCreateCoupon);
         
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -293,7 +291,7 @@
             }
             let contentHTML = `<div class="card"><h2>User Management</h2><input type="text" id="userSearchInput" onkeyup="window.searchUsers()" placeholder="Cari username..."><div class="table-wrapper"><table id="usersTable"><thead><tr><th>Username</th><th>Role</th><th>Status</th><th>Aksi</th></tr></thead><tbody><tr><td colspan="4" style="text-align:center;">Memuat data...</td></tr></tbody></table></div></div>`;
             if (currentUserRole === 'owner') {
-                contentHTML += `<div class="card" id="serverManagementCard"><h2>Server Management</h2><div class="table-wrapper"><table id="serversTable"><thead><tr><th>ID</th><th>Nama Server</th><th>Owner</th><th>Aksi</th></tr></thead><tbody><tr><td colspan="4" style="text-align:center;">Memuat data...</td></tr></tbody></table></div></div><div class="card" style="border-color: var(--danger-color);"><h2>Zona Berbahaya</h2><p style="margin-bottom: 1rem;">Aksi di bawah ini tidak bisa dibatalkan dan akan menghapus data secara permanen dari Pterodactyl.</p><button class="btn-danger" onclick="window.clearAllServers()">Clear All Servers & Users Terkait</button><button class="btn-danger" onclick="window.clearAllPteroUsers()" style="margin-top: 1rem; background-color: #c0392b;">Clear All Ptero Users Only</button></div>`;
+                contentHTML += `<div class="card"><h2>Server Management</h2><div class="table-wrapper"><table id="serversTable"><thead><tr><th>ID</th><th>Nama Server</th><th>Owner</th><th>Aksi</th></tr></thead><tbody><tr><td colspan="4" style="text-align:center;">Memuat data...</td></tr></tbody></table></div></div><div class="card" style="border-color: var(--danger-color);"><h2>Zona Berbahaya</h2><p style="margin-bottom: 1rem;">Aksi di bawah ini tidak bisa dibatalkan.</p><button class="btn-danger" onclick="window.clearAllServers()">Clear All Servers & Users Terkait</button><button class="btn-danger" onclick="window.clearAllPteroUsers()" style="margin-top: 1rem; background-color: #c0392b;">Clear All Ptero Users Only</button></div>`;
             }
             dashboardContent.innerHTML = contentHTML;
             if (currentUserRole === 'owner') {
