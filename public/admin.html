@@ -18,8 +18,8 @@
         h1 { font-size: 2rem; font-weight: 600; color: var(--text-color); text-align: left; }
         .card { background-color: var(--card-bg); padding: 1.5rem; border-radius: 15px; border: 1px solid var(--main-purple); margin-bottom: 2rem; }
         h2 { color: var(--light-purple); text-align: left; margin-bottom: 1.5rem; border-bottom: 1px solid var(--main-purple); padding-bottom: 0.5rem; }
-        input { width: 100%; padding: 0.75rem; background-color: var(--bg-color); border: 2px solid var(--main-purple); border-radius: 8px; color: var(--text-color); font-size: 1rem; margin-bottom: 1.5rem; }
-        input:focus { outline: none; box-shadow: 0 0 15px rgba(156, 60, 255, 0.8); }
+        input, select { width: 100%; padding: 0.75rem; background-color: var(--bg-color); border: 2px solid var(--main-purple); border-radius: 8px; color: var(--text-color); font-size: 1rem; margin-bottom: 1.5rem; }
+        input:focus, select:focus { outline: none; box-shadow: 0 0 15px rgba(156, 60, 255, 0.8); }
         .table-wrapper { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 0.75rem 1rem; border-bottom: 1px solid #333; text-align: left; white-space: nowrap; }
@@ -49,7 +49,7 @@
         .modal-backdrop.show .modal-content { transform: scale(1); }
         .modal-header h3 { color: var(--main-purple); margin: 0; margin-bottom: 0.5rem; text-align: left; }
         .modal-body p { color: var(--text-color); margin: 1rem 0; text-align: left; line-height: 1.5; }
-        .modal-body input { margin-top: 0.5rem; width: 100%; padding: 0.75rem; background-color: var(--bg-color); border: 2px solid var(--main-purple); border-radius: 8px; color: var(--text-color); font-size: 1rem; }
+        .modal-body input, .modal-body select { margin-top: 0.5rem; width: 100%; padding: 0.75rem; background-color: var(--bg-color); border: 2px solid var(--main-purple); border-radius: 8px; color: var(--text-color); font-size: 1rem; }
         .modal-footer { margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem; }
         .modal-footer button { padding: 0.5rem 1rem; font-size: 14px; font-weight: 600; border-radius: 5px; border: none; cursor: pointer; }
         .btn-modal-cancel { background-color: #ddd; color: var(--bg-color); }
@@ -91,6 +91,25 @@
         </div>
     </div>
     
+    <div class="modal-backdrop" id="createCouponModal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Buat Kupon Baru</h3></div>
+            <div class="modal-body">
+                <form id="createCouponForm" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <input type="text" id="couponCodeInput" placeholder="Kode Kupon (e.g., TEHRIO)" required style="text-transform: uppercase;">
+                    <input type="number" id="couponCapacityInput" placeholder="Kapasitas (Jumlah User)" required min="1">
+                    <select id="couponRamSelect" required>
+                        <option value="" disabled selected>Pilih RAM Reward</option>
+                    </select>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="modalCouponCancelBtn" class="btn-modal-cancel">Batal</button>
+                <button id="modalCouponConfirmBtn" class="btn-modal-confirm">Buat Kupon</button>
+            </div>
+        </div>
+    </div>
+
     <div id="loadingOverlay">
         <div class="spinner"></div>
     </div>
@@ -116,6 +135,7 @@
         const modalPrompt = document.getElementById('modalPrompt');
         const modalInput = document.getElementById('modalInput');
         const loadingOverlay = document.getElementById('loadingOverlay');
+        const createCouponModal = document.getElementById('createCouponModal');
         
         let idToken = null;
         let currentUserRole = null;
@@ -133,6 +153,7 @@
             const colors = { success: 'linear-gradient(to right, #00b09b, #96c93d)', error: 'linear-gradient(to right, #ff5f6d, #ffc371)', info: 'linear-gradient(to right, #0072ff, #00c6ff)' };
             Toastify({ text: message, duration: 3000, close: true, gravity: "top", position: "right", stopOnFocus: true, style: { background: colors[type] || colors.info } }).showToast();
         }
+
         const showLoader = () => loadingOverlay.classList.add('show');
         const hideLoader = () => loadingOverlay.classList.remove('show');
 
@@ -190,6 +211,52 @@
                 modalCancelBtn.onclick = () => { customModal.classList.remove('show'); resolve(null); };
             });
         }
+
+        function openCreateCouponModal() {
+            const ramSelect = document.getElementById('couponRamSelect');
+            if(ramSelect.options.length <= 1) {
+                const ramOptions = [...Array(10).keys()].map(i => `${i + 1}gb`);
+                ramOptions.push("unlimited");
+                ramOptions.forEach(ram => {
+                    const option = document.createElement('option');
+                    option.value = ram;
+                    option.textContent = ram === 'unlimited' ? 'Unlimited RAM' : `${ram.replace('gb', '')} GB RAM`;
+                    ramSelect.appendChild(option);
+                });
+            }
+            document.getElementById('createCouponForm').reset();
+            createCouponModal.classList.add('show');
+        }
+        function closeCreateCouponModal() { createCouponModal.classList.remove('show'); }
+        document.getElementById('modalCouponCancelBtn').onclick = closeCreateCouponModal;
+        document.getElementById('modalCouponConfirmBtn').onclick = () => {
+             document.getElementById('createCouponForm').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        };
+        
+        async function handleCreateCoupon(event) {
+            event.preventDefault();
+            const code = document.getElementById('couponCodeInput').value.trim();
+            const capacity = document.getElementById('couponCapacityInput').value;
+            const rewardRam = document.getElementById('couponRamSelect').value;
+            if(!code || !capacity || !rewardRam) return showToast('Semua field wajib diisi!', 'error');
+            
+            showLoader();
+            try {
+                const result = await apiCall('admin', {
+                    body: JSON.stringify({
+                        action: 'createCoupon',
+                        payload: { code, capacity, rewardRam }
+                    })
+                });
+                showToast(result.message, 'success');
+                closeCreateCouponModal();
+            } catch(error) {
+                showToast(error.message, 'error');
+            } finally {
+                hideLoader();
+            }
+        }
+        document.getElementById('createCouponForm').addEventListener('submit', handleCreateCoupon);
         
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -220,8 +287,20 @@
 
         function setupDashboard() {
             pageTitle.textContent = currentUserRole === 'owner' ? 'Admin Dashboard' : 'Reseller APK Dashboard';
-            sidebarContent.innerHTML = `<a href="/index.html">Create Panel</a><a href="#" id="logoutSidebarBtn">Logout</a>`;
+            
+            const createPanelLink = `<a href="/index.html">Create Panel</a>`;
+            let ownerMenu = '';
+            if (currentUserRole === 'owner') {
+                ownerMenu = `<a href="#" id="createCouponLink">Create Kupon</a>`;
+            }
+            const logoutLink = `<a href="#" id="logoutSidebarBtn">Logout</a>`;
+            sidebarContent.innerHTML = createPanelLink + ownerMenu + logoutLink;
+            
             document.getElementById('logoutSidebarBtn').onclick = (e) => { e.preventDefault(); signOut(auth); };
+            if (currentUserRole === 'owner') {
+                document.getElementById('createCouponLink').onclick = (e) => { e.preventDefault(); openCreateCouponModal(); };
+            }
+            
             let contentHTML = `
                 <div class="card">
                     <h2>User Management</h2>
@@ -251,8 +330,11 @@
                 </div>`;
             }
             dashboardContent.innerHTML = contentHTML;
-            if (currentUserRole === 'owner') loadAllServers();
-            else if (currentUserRole === 'reseller_apk') setupRealtimeNotifications();
+            if (currentUserRole === 'owner') {
+                loadAllServers();
+            } else if (currentUserRole === 'reseller_apk') {
+                setupRealtimeNotifications();
+            }
             loadPendingRequests().then(loadAllUsers);
         }
 
