@@ -1,5 +1,6 @@
 // api/_firebase-admin.js
 const admin = require('firebase-admin');
+const { telegramConfig } = require('../config.js');
 
 if (!admin.apps.length) {
   try {
