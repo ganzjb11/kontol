@@ -67,7 +67,8 @@
             <div class="menu-icon" id="openSidebarBtn"><i class="fas fa-bars"></i></div>
             <h1 id="pageTitle">Memuat Dashboard...</h1>
         </header>
-        <div id="dashboardContent"></div>
+        <div id="dashboardContent">
+        </div>
     </div>
     <nav id="sidebar" class="sidebar">
         <a href="javascript:void(0)" class="closebtn" id="closeSidebarBtn">&times;</a>
@@ -217,6 +218,7 @@
             pageTitle.textContent = currentUserRole === 'owner' ? 'Admin Dashboard' : 'Reseller APK Dashboard';
             sidebarContent.innerHTML = `<a href="/index.html">Create Panel</a><a href="#" id="logoutSidebarBtn">Logout</a>`;
             document.getElementById('logoutSidebarBtn').onclick = (e) => { e.preventDefault(); signOut(auth); };
+            
             let contentHTML = `
                 <div class="card">
                     <h2>User Management</h2>
@@ -246,8 +248,11 @@
                 </div>`;
             }
             dashboardContent.innerHTML = contentHTML;
-            if (currentUserRole === 'owner') loadAllServers();
-            else if (currentUserRole === 'reseller_apk') setupRealtimeNotifications();
+            if (currentUserRole === 'owner') {
+                loadAllServers();
+            } else if (currentUserRole === 'reseller_apk') {
+                setupRealtimeNotifications();
+            }
             loadPendingRequests().then(loadAllUsers);
         }
 
@@ -382,7 +387,7 @@
         };
 
         window.deleteServer = async function(serverId) {
-            const confirmed = await showCustomConfirm('Konfirmasi Hapus', `Yakin ingin menghapus server ID ${serverId}?`, { isDanger: true, confirmText: 'Hapus' });
+            const confirmed = await showCustomConfirm('Konfirmasi Hapus', `Yakin ingin menghapus server ID ${serverId} secara permanen?`, { isDanger: true, confirmText: 'Hapus' });
             if (!confirmed) return;
             showLoader();
             try {
@@ -414,7 +419,6 @@
             } catch (error) {
                 showToast(error.message, 'error');
             } finally {
-                // To avoid errors, ensure the button exists before trying to access it
                 const button = document.querySelector('.card[style*="border-color: var(--danger-color)"] button');
                 if(button) {
                     button.disabled = false;
