@@ -1,7 +1,6 @@
 // api/admin.js
-const { pterodactylConfig } = require('../config.js');
+const { pterodactylConfig, telegramConfig } = require('../config.js');
 const { db, auth, verifyUser } = require('./_firebase-admin.js');
-const { telegramConfig } = require('../../config.js');
 const fetch = require('node-fetch');
 
 async function sendTelegramNotification(requestData) {
