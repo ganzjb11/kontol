@@ -66,21 +66,9 @@ module.exports = async (req, res) => {
         }
         
         const pteroUserId = pteroUserData.attributes.id;
-
-        const keyDescription = `PanelGW Key for ${userData.username}`;
-        const keyResponse = await fetch(`${domain}/api/application/users/${pteroUserId}/api-keys`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify({ description: keyDescription, allowed_ips: [] })
-        });
-
-        const keyData = await keyResponse.json();
-        if (!keyResponse.ok) {
-            throw new Error(keyData.errors ? keyData.errors[0].detail : 'Gagal membuat Client API Key.');
-        }
         
-        const clientApiKey = keyData.attributes.identifier;
-        await userDoc.ref.update({ pteroUserId: pteroUserId, pteroClientApiKey: clientApiKey });
+        // Simpan hanya Pterodactyl User ID ke Firestore, tanpa Client API Key
+        await userDoc.ref.update({ pteroUserId: pteroUserId });
         
         const finalServerName = serverName || `Server for ${username}`;
         const { ram: memory, disk, cpu } = getServerResources(ram);
