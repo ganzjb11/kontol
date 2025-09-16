@@ -3,6 +3,33 @@ const { pterodactylConfig, telegramConfig } = require('../config.js');
 const { db, auth, verifyUser } = require('./_firebase-admin.js');
 const fetch = require('node-fetch');
 
+async function fetchAllPterodactylData(initialUrl, apiKey) {
+    let allData = [];
+    let url = initialUrl;
+
+    while (url) {
+        const response = await fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}`, 'Accept': 'application/json' } });
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.errors ? data.errors[0].detail : `Gagal mengambil data dari ${url}`);
+        }
+
+        allData = allData.concat(data.data);
+        // Cek apakah ada halaman berikutnya di link pagination
+        url = data.meta.pagination.links ? data.meta.pagination.links.next : null;
+        if(url) {
+            // Hapus duplikasi base URL jika ada
+            if (!url.startsWith('http')) {
+                const baseDomain = new URL(initialUrl).origin;
+                url = new URL(url, baseDomain).href;
+            }
+            await new Promise(resolve => setTimeout(resolve, 250)); // Jeda antar request
+        }
+    }
+    return allData;
+}
+
 async function sendTelegramNotification(requestData) {
     const { botToken, ownerChatId } = telegramConfig;
     if (!botToken || !ownerChatId) {
@@ -44,6 +71,7 @@ module.exports = async (req, res) => {
         const { action, payload } = req.body;
         const { uid: initiatorUid, userData } = await verifyUser(req);
         const loggedInUserRole = userData.role;
+        const { domain, apiKey, safeUsers } = pterodactylConfig;
 
         switch (action) {
             case 'getAllUsers': {
@@ -61,21 +89,25 @@ module.exports = async (req, res) => {
                 }
                 const { username: targetUsername, role: newRole, banned } = payload;
                 if (!targetUsername) return res.status(400).json({ message: 'Username target wajib diisi.' });
+                
                 const usersRef = db.collection('users');
                 const q = usersRef.where('username', '==', targetUsername.toLowerCase());
                 const querySnapshot = await q.get();
                 if (querySnapshot.empty) return res.status(404).json({ message: `User '${targetUsername}' tidak ditemukan.` });
                 
                 const targetUserDoc = querySnapshot.docs[0];
+                
                 if (loggedInUserRole === 'reseller_apk') {
                     if (banned !== undefined) return res.status(403).json({ message: 'Akses ditolak. Anda tidak bisa ban/unban.' });
                     if (newRole === 'reseller_apk' || newRole === 'owner') return res.status(403).json({ message: 'Akses ditolak. Anda tidak bisa mengangkat ke role ini.' });
+                    
                     const requestRef = db.collection('roleChangeRequests').doc();
                     const requestData = { id: requestRef.id, initiatorUid, initiatorUsername: userData.username, targetUid: targetUserDoc.id, targetUsername: targetUserDoc.data().username, currentRole: targetUserDoc.data().role, newRole, status: 'pending', createdAt: new Date() };
                     await requestRef.set(requestData);
                     await sendTelegramNotification(requestData);
                     return res.status(200).json({ message: `Permintaan untuk mengubah role ${targetUsername} telah dikirim.` });
                 }
+                
                 if (loggedInUserRole === 'owner') {
                     const updateData = {};
                     if (newRole !== undefined) updateData.role = newRole;
@@ -86,23 +118,20 @@ module.exports = async (req, res) => {
                     if (Object.keys(updateData).length > 0) await targetUserDoc.ref.update(updateData);
                     return res.status(200).json({ message: `Status user ${targetUsername} berhasil diupdate.` });
                 }
+
                 return res.status(403).json({ message: 'Aksi tidak diizinkan.' });
             }
 
             case 'getAllServers': {
                 if (loggedInUserRole !== 'owner') return res.status(403).json({ message: 'Hanya owner yang bisa melihat semua server.' });
-                const { domain, apiKey } = pterodactylConfig;
-                const response = await fetch(`${domain}/api/application/servers?include=user`, { headers: { 'Authorization': `Bearer ${apiKey}` } });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.errors[0].detail);
-                return res.status(200).json(data.data);
+                const allServers = await fetchAllPterodactylData(`${domain}/api/application/servers?include=user`, apiKey);
+                return res.status(200).json(allServers);
             }
 
             case 'deleteServer': {
                 if (loggedInUserRole !== 'owner') return res.status(403).json({ message: 'Hanya owner yang bisa menghapus server.' });
                 const { serverId } = payload;
                 if (!serverId) return res.status(400).json({ message: "Server ID wajib diisi." });
-                const { domain, apiKey } = pterodactylConfig;
                 const response = await fetch(`${domain}/api/application/servers/${serverId}/force`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${apiKey}` } });
                 if (response.status !== 204) throw new Error("Gagal menghapus server dari Pterodactyl.");
                 return res.status(200).json({ message: `Server ID ${serverId} berhasil dihapus.` });
@@ -110,12 +139,10 @@ module.exports = async (req, res) => {
 
             case 'clearAllServers': {
                 if (loggedInUserRole !== 'owner') return res.status(403).json({ message: 'Hanya owner yang bisa clear all servers.' });
-                const { domain, apiKey, safeUsers } = pterodactylConfig;
-                const serverRes = await fetch(`${domain}/api/application/servers?include=user`, { headers: { 'Authorization': `Bearer ${apiKey}` } });
-                const serverData = await serverRes.json();
-                if (!serverRes.ok) throw new Error("Gagal mengambil daftar server.");
                 
-                const serversToDelete = serverData.data.filter(server => {
+                const allServers = await fetchAllPterodactylData(`${domain}/api/application/servers?include=user`, apiKey);
+                
+                const serversToDelete = allServers.filter(server => {
                     const owner = server.attributes.relationships.user.attributes;
                     return !safeUsers.includes(owner.id) && !safeUsers.includes(owner.email);
                 });
@@ -148,13 +175,10 @@ module.exports = async (req, res) => {
 
             case 'clearAllUsers': {
                 if (loggedInUserRole !== 'owner') return res.status(403).json({ message: 'Hanya owner yang bisa clear all users.' });
-                const { domain, apiKey, safeUsers } = pterodactylConfig;
                 
-                const usersRes = await fetch(`${domain}/api/application/users`, { headers: { 'Authorization': `Bearer ${apiKey}` } });
-                const usersData = await usersRes.json();
-                if (!usersRes.ok) throw new Error("Gagal mengambil daftar user.");
+                const allUsers = await fetchAllPterodactylData(`${domain}/api/application/users`, apiKey);
                 
-                const usersToDelete = usersData.data.filter(user => {
+                const usersToDelete = allUsers.filter(user => {
                     const attrs = user.attributes;
                     return !safeUsers.includes(attrs.id) && !safeUsers.includes(attrs.email);
                 });
