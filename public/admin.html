@@ -70,11 +70,13 @@
         <div id="dashboardContent">
         </div>
     </div>
+
     <nav id="sidebar" class="sidebar">
         <a href="javascript:void(0)" class="closebtn" id="closeSidebarBtn">&times;</a>
         <div id="sidebarContent"></div>
     </nav>
     <div id="overlay" class="overlay"></div>
+
     <div class="modal-backdrop" id="customModal">
         <div class="modal-content">
             <div class="modal-header"><h3 id="modalTitle"></h3></div>
@@ -88,7 +90,10 @@
             </div>
         </div>
     </div>
-    <div id="loadingOverlay"><div class="spinner"></div></div>
+    
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
 
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script type="module">
@@ -128,7 +133,6 @@
             const colors = { success: 'linear-gradient(to right, #00b09b, #96c93d)', error: 'linear-gradient(to right, #ff5f6d, #ffc371)', info: 'linear-gradient(to right, #0072ff, #00c6ff)' };
             Toastify({ text: message, duration: 3000, close: true, gravity: "top", position: "right", stopOnFocus: true, style: { background: colors[type] || colors.info } }).showToast();
         }
-
         const showLoader = () => loadingOverlay.classList.add('show');
         const hideLoader = () => loadingOverlay.classList.remove('show');
 
@@ -218,7 +222,6 @@
             pageTitle.textContent = currentUserRole === 'owner' ? 'Admin Dashboard' : 'Reseller APK Dashboard';
             sidebarContent.innerHTML = `<a href="/index.html">Create Panel</a><a href="#" id="logoutSidebarBtn">Logout</a>`;
             document.getElementById('logoutSidebarBtn').onclick = (e) => { e.preventDefault(); signOut(auth); };
-            
             let contentHTML = `
                 <div class="card">
                     <h2>User Management</h2>
@@ -232,7 +235,7 @@
                 </div>`;
             if (currentUserRole === 'owner') {
                 contentHTML += `
-                <div class="card" id="serverManagementCard">
+                <div class="card">
                     <h2>Server Management</h2>
                     <div class="table-wrapper">
                         <table id="serversTable">
@@ -248,11 +251,8 @@
                 </div>`;
             }
             dashboardContent.innerHTML = contentHTML;
-            if (currentUserRole === 'owner') {
-                loadAllServers();
-            } else if (currentUserRole === 'reseller_apk') {
-                setupRealtimeNotifications();
-            }
+            if (currentUserRole === 'owner') loadAllServers();
+            else if (currentUserRole === 'reseller_apk') setupRealtimeNotifications();
             loadPendingRequests().then(loadAllUsers);
         }
 
