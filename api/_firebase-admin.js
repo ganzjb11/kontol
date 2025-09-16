@@ -39,7 +39,6 @@ async function verifyUser(req, requiredRole = 'user') {
         throw new Error(`Akses ditolak. Role Anda '${userRole}', butuh role minimal '${requiredRole}'.`);
     }
     
-    // --- TANDA BUKTI ---
     console.log(`--- VERIFYING USER --- UID: ${uid} | ROLE: ${userRole} | VERSION: 2.0 ---`);
     
     return { uid, userDoc, userData: { ...userData, role: userRole } };
