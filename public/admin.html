@@ -14,27 +14,49 @@
         .main-container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 2rem 1rem; }
         .header { width: 100%; display: flex; align-items: center; margin-bottom: 2rem; gap: 1.5rem; }
         .header .menu-icon { font-size: 1.5rem; cursor: pointer; color: var(--light-purple); transition: color 0.2s ease; }
+        .header .menu-icon:hover { color: var(--main-purple); }
         h1 { font-size: 2rem; font-weight: 600; color: var(--text-color); text-align: left; }
         .card { background-color: var(--card-bg); padding: 1.5rem; border-radius: 15px; border: 1px solid var(--main-purple); margin-bottom: 2rem; }
         h2 { color: var(--light-purple); text-align: left; margin-bottom: 1.5rem; border-bottom: 1px solid var(--main-purple); padding-bottom: 0.5rem; }
         input, select { width: 100%; padding: 0.75rem; background-color: var(--bg-color); border: 2px solid var(--main-purple); border-radius: 8px; color: var(--text-color); font-size: 1rem; margin-bottom: 1.5rem; }
+        input:focus, select:focus { outline: none; box-shadow: 0 0 15px rgba(156, 60, 255, 0.8); }
         .table-wrapper { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; }
+        table { width: 100%; border-collapse: collapse; table-layout: auto; }
         th, td { padding: 0.75rem 1rem; border-bottom: 1px solid #333; text-align: left; white-space: nowrap; }
+        th { font-weight: 600; color: var(--light-purple); }
         .actions { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
         .actions button { font-size: 12px; margin: 0; padding: 0.3rem 0.6rem; border-radius: 5px; border: none; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
         .actions button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+        .actions button:disabled { background-color: #555 !important; color: #999 !important; cursor: not-allowed; opacity: 0.7; }
+        .actions .btn-make-reseller { background-color: var(--warning-color); color: var(--bg-color); }
+        .actions .btn-make-user { background-color: #ddd; color: var(--bg-color); }
+        .actions .btn-make-reseller-web { background-color: var(--info-color, #17a2b8); color: white; }
+        .actions .btn-ban { background-color: var(--danger-color); color: white; }
+        .actions .btn-unban { background-color: #27ae60; color: white; }
         .btn-danger { background-color: var(--danger-color); color: white; font-weight: 700; width: 100%; padding: 0.8rem; }
+        .btn-danger:hover:not(:disabled) { box-shadow: 0 4px 15px rgba(244, 67, 54, 0.5); }
         .sidebar { height: 100%; width: 280px; position: fixed; z-index: 1002; top: 0; left: 0; background-color: var(--card-bg); overflow-x: hidden; transition: 0.3s; transform: translateX(-100%); padding-top: 60px; border-right: 2px solid var(--main-purple); }
+        .sidebar.open { transform: translateX(0); }
+        .sidebar a { padding: 10px 15px; text-decoration: none; font-size: 1.2rem; color: var(--light-purple); display: block; transition: 0.2s; }
+        .sidebar a:hover { color: var(--text-color); background-color: var(--main-purple); }
+        .sidebar .closebtn { position: absolute; top: 0; right: 25px; font-size: 36px; color: var(--text-color); }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1001; display: none; }
+        .overlay.show { display: block; }
+        .hidden { display: none; }
         .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1003; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
+        .modal-backdrop.show { opacity: 1; pointer-events: all; }
         .modal-content { background-color: var(--card-bg); padding: 1.5rem; border-radius: 15px; border: 2px solid var(--main-purple); box-shadow: 0 0 25px rgba(156, 60, 255, 0.7); width: 90%; max-width: 400px; transform: scale(0.9); transition: transform 0.3s ease; }
+        .modal-backdrop.show .modal-content { transform: scale(1); }
         .modal-header h3 { color: var(--main-purple); margin: 0; margin-bottom: 0.5rem; text-align: left; }
         .modal-body p { color: var(--text-color); margin: 1rem 0; text-align: left; line-height: 1.5; }
         .modal-body input, .modal-body select { margin-top: 0.5rem; width: 100%; padding: 0.75rem; background-color: var(--bg-color); border: 2px solid var(--main-purple); border-radius: 8px; color: var(--text-color); font-size: 1rem; }
         .modal-footer { margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem; }
+        .modal-footer button { padding: 0.5rem 1rem; font-size: 14px; font-weight: 600; border-radius: 5px; border: none; cursor: pointer; }
         .btn-modal-cancel { background-color: #ddd; color: var(--bg-color); }
         .btn-modal-confirm { background-color: var(--main-purple); color: var(--text-color); }
+        .btn-modal-confirm.danger { background-color: var(--danger-color); color: white; }
         #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        #loadingOverlay.show { opacity: 1; pointer-events: all; }
         .spinner { width: 60px; height: 60px; border: 5px solid var(--placeholder-color); border-top-color: var(--main-purple); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
@@ -91,11 +113,6 @@
         import { onAuthStateChanged, signOut, getIdToken } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
         import { collection, query, where, onSnapshot, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
         
-        const openSidebarBtn = document.getElementById('openSidebarBtn');
-        const closeSidebarBtn = document.getElementById('closeSidebarBtn');
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('overlay');
-        const sidebarContent = document.getElementById('sidebarContent');
         const pageTitle = document.getElementById('pageTitle');
         const dashboardContent = document.getElementById('dashboardContent');
         const customModal = document.getElementById('customModal');
@@ -114,11 +131,14 @@
         let unsubscribeNotifications = null;
         let pendingRequests = new Set();
 
-        function openSidebar() { sidebar.classList.add('open'); overlay.classList.add('show'); }
-        function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('show'); }
-        openSidebarBtn.onclick = openSidebar;
-        closeSidebarBtn.onclick = closeSidebar;
-        overlay.onclick = closeSidebar;
+        function openSidebar() {
+            document.getElementById('sidebar').classList.add('open');
+            document.getElementById('overlay').classList.add('show');
+        }
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('overlay').classList.remove('show');
+        }
 
         function showToast(message, type = 'success') {
             const colors = { success: 'linear-gradient(to right, #00b09b, #96c93d)', error: 'linear-gradient(to right, #ff5f6d, #ffc371)', info: 'linear-gradient(to right, #0072ff, #00c6ff)' };
@@ -198,14 +218,6 @@
             createCouponModal.classList.add('show');
         }
         function closeCreateCouponModal() { createCouponModal.classList.remove('show'); }
-        document.getElementById('modalCouponCancelBtn').onclick = closeCreateCouponModal;
-
-        // --- FIX UTAMA ADA DI SINI ---
-        document.getElementById('modalCouponConfirmBtn').onclick = handleCreateCoupon;
-        document.getElementById('createCouponForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            handleCreateCoupon();
-        });
         
         async function handleCreateCoupon() {
             const code = document.getElementById('couponCodeInput').value.trim();
@@ -232,6 +244,17 @@
             if (user) {
                 currentUserUid = user.uid;
                 idToken = await getIdToken(user);
+
+                const openSidebarBtn = document.getElementById('openSidebarBtn');
+                const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+                const overlay = document.getElementById('overlay');
+                openSidebarBtn.onclick = openSidebar;
+                closeSidebarBtn.onclick = closeSidebar;
+                overlay.onclick = closeSidebar;
+
+                document.getElementById('modalCouponCancelBtn').onclick = closeCreateCouponModal;
+                document.getElementById('modalCouponConfirmBtn').onclick = handleCreateCoupon;
+                
                 await loadUserRole();
                 setupDashboard();
             } else { 
@@ -257,6 +280,7 @@
 
         function setupDashboard() {
             pageTitle.textContent = currentUserRole === 'owner' ? 'Admin Dashboard' : 'Reseller APK Dashboard';
+            const sidebarContent = document.getElementById('sidebarContent');
             const createPanelLink = `<a href="/index.html">Create Panel</a>`;
             let ownerMenu = '';
             if (currentUserRole === 'owner') {
