@@ -57,25 +57,20 @@ module.exports = async (req, res) => {
                 if (loggedInUserRole !== 'owner' && loggedInUserRole !== 'reseller_apk') return res.status(403).json({ message: 'Akses ditolak.' });
                 const { username: targetUsername, role: newRole, banned } = payload;
                 if (!targetUsername) return res.status(400).json({ message: 'Username target wajib diisi.' });
-
                 const usersRef = db.collection('users');
                 const q = usersRef.where('username', '==', targetUsername.toLowerCase());
                 const querySnapshot = await q.get();
                 if (querySnapshot.empty) return res.status(404).json({ message: `User '${targetUsername}' tidak ditemukan.` });
-                
                 const targetUserDoc = querySnapshot.docs[0];
-
                 if (loggedInUserRole === 'reseller_apk') {
                     if (banned !== undefined) return res.status(403).json({ message: 'Akses ditolak. Anda tidak bisa ban/unban.' });
                     if (newRole === 'reseller_apk' || newRole === 'owner') return res.status(403).json({ message: 'Akses ditolak. Anda tidak bisa mengangkat ke role ini.' });
-                    
                     const requestRef = db.collection('roleChangeRequests').doc();
                     const requestData = { id: requestRef.id, initiatorUid, initiatorUsername: userData.username, targetUid: targetUserDoc.id, targetUsername: targetUserDoc.data().username, currentRole: targetUserDoc.data().role, newRole, status: 'pending', createdAt: new Date() };
                     await requestRef.set(requestData);
                     await sendTelegramNotification(requestData);
                     return res.status(200).json({ message: `Permintaan untuk mengubah role ${targetUsername} telah dikirim.` });
                 }
-                
                 if (loggedInUserRole === 'owner') {
                     const updateData = {};
                     if (newRole !== undefined) updateData.role = newRole;
@@ -86,11 +81,61 @@ module.exports = async (req, res) => {
                     if (Object.keys(updateData).length > 0) await targetUserDoc.ref.update(updateData);
                     return res.status(200).json({ message: `Status user ${targetUsername} berhasil diupdate.` });
                 }
-
                 return res.status(403).json({ message: 'Aksi tidak diizinkan.' });
             }
 
-            // ... (case lain seperti getAllServers, deleteServer, dll. sama seperti sebelumnya)
+            case 'createCoupon': {
+                if (loggedInUserRole !== 'owner') return res.status(403).json({ message: 'Hanya owner yang bisa membuat kupon.' });
+                const { code, capacity, rewardRam } = payload;
+                if (!code || !capacity || !rewardRam) return res.status(400).json({ message: "Semua field wajib diisi." });
+
+                const couponRef = db.collection('coupons').doc(code.toUpperCase());
+                const doc = await couponRef.get();
+                if (doc.exists) return res.status(409).json({ message: `Kupon dengan kode '${code}' sudah ada.` });
+
+                await couponRef.set({
+                    code: code.toUpperCase(),
+                    capacity: parseInt(capacity, 10),
+                    rewardRam: rewardRam,
+                    redeemedBy: [],
+                    createdAt: new Date()
+                });
+                return res.status(201).json({ message: `Kupon '${code.toUpperCase()}' berhasil dibuat!` });
+            }
+
+            case 'getAllServers': {
+                if (loggedInUserRole !== 'owner') return res.status(403).json({ message: 'Hanya owner yang bisa melihat semua server.' });
+                const { domain, apiKey } = pterodactylConfig;
+                const response = await fetch(`${domain}/api/application/servers?include=user`, { headers: { 'Authorization': `Bearer ${apiKey}` } });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.errors[0].detail);
+                return res.status(200).json(data.data);
+            }
+
+            case 'deleteServer': {
+                if (loggedInUserRole !== 'owner') return res.status(403).json({ message: 'Hanya owner yang bisa menghapus server.' });
+                const { serverId } = payload;
+                if (!serverId) return res.status(400).json({ message: "Server ID wajib diisi." });
+                const { domain, apiKey } = pterodactylConfig;
+                const response = await fetch(`${domain}/api/application/servers/${serverId}/force`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${apiKey}` } });
+                if (response.status !== 204) throw new Error("Gagal menghapus server dari Pterodactyl.");
+                return res.status(200).json({ message: `Server ID ${serverId} berhasil dihapus.` });
+            }
+
+            case 'clearAllServers': {
+                if (loggedInUserRole !== 'owner') return res.status(403).json({ message: 'Hanya owner yang bisa clear all servers.' });
+                const { domain, apiKey, safeUsers } = pterodactylConfig;
+                const serverRes = await fetch(`${domain}/api/application/servers?include=user`, { headers: { 'Authorization': `Bearer ${apiKey}` } });
+                const serverData = await serverRes.json();
+                if (!serverRes.ok) throw new Error("Gagal mengambil daftar server.");
+                const serversToDelete = serverData.data.filter(s => !safeUsers.includes(s.attributes.relationships.user.attributes.id));
+                if (serversToDelete.length === 0) return res.status(200).json({ message: "Tidak ada server yang perlu dihapus." });
+                for (const server of serversToDelete) {
+                    await fetch(`${domain}/api/application/servers/${server.attributes.id}/force`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${apiKey}` } });
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+                return res.status(200).json({ message: `${serversToDelete.length} server berhasil di-clear.` });
+            }
 
             default:
                 return res.status(400).json({ message: 'Aksi tidak diketahui.' });
