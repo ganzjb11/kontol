@@ -47,20 +47,25 @@ module.exports = async (req, res) => {
 
         switch (action) {
             case 'getAllUsers': {
-                if (loggedInUserRole !== 'owner' && loggedInUserRole !== 'reseller_apk') return res.status(403).json({ message: 'Akses ditolak.' });
+                if (loggedInUserRole !== 'owner' && loggedInUserRole !== 'reseller_apk') {
+                    return res.status(403).json({ message: 'Akses ditolak.' });
+                }
                 const usersSnapshot = await db.collection('users').get();
                 const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 return res.status(200).json(users);
             }
 
             case 'setUserState': {
-                if (loggedInUserRole !== 'owner' && loggedInUserRole !== 'reseller_apk') return res.status(403).json({ message: 'Akses ditolak.' });
+                if (loggedInUserRole !== 'owner' && loggedInUserRole !== 'reseller_apk') {
+                    return res.status(403).json({ message: 'Akses ditolak.' });
+                }
                 const { username: targetUsername, role: newRole, banned } = payload;
                 if (!targetUsername) return res.status(400).json({ message: 'Username target wajib diisi.' });
                 const usersRef = db.collection('users');
                 const q = usersRef.where('username', '==', targetUsername.toLowerCase());
                 const querySnapshot = await q.get();
                 if (querySnapshot.empty) return res.status(404).json({ message: `User '${targetUsername}' tidak ditemukan.` });
+                
                 const targetUserDoc = querySnapshot.docs[0];
                 if (loggedInUserRole === 'reseller_apk') {
                     if (banned !== undefined) return res.status(403).json({ message: 'Akses ditolak. Anda tidak bisa ban/unban.' });
@@ -83,7 +88,7 @@ module.exports = async (req, res) => {
                 }
                 return res.status(403).json({ message: 'Aksi tidak diizinkan.' });
             }
-            
+
             case 'getAllServers': {
                 if (loggedInUserRole !== 'owner') return res.status(403).json({ message: 'Hanya owner yang bisa melihat semua server.' });
                 const { domain, apiKey } = pterodactylConfig;
@@ -106,7 +111,6 @@ module.exports = async (req, res) => {
             case 'clearAllServers': {
                 if (loggedInUserRole !== 'owner') return res.status(403).json({ message: 'Hanya owner yang bisa clear all servers.' });
                 const { domain, apiKey, safeUsers } = pterodactylConfig;
-                
                 const serverRes = await fetch(`${domain}/api/application/servers?include=user`, { headers: { 'Authorization': `Bearer ${apiKey}` } });
                 const serverData = await serverRes.json();
                 if (!serverRes.ok) throw new Error("Gagal mengambil daftar server.");
@@ -129,12 +133,13 @@ module.exports = async (req, res) => {
                 }
                 
                 for (const userId of userIdsToDelete) {
-                    // Cek lagi untuk memastikan user ini bukan safeUser
                     const isSafe = safeUsers.includes(userId);
                     if (!isSafe) {
-                        const userDeleteRes = await fetch(`${domain}/api/application/users/${userId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${apiKey}` } });
-                        if(userDeleteRes.ok) deletedUsersCount++;
-                        await new Promise(resolve => setTimeout(resolve, 200));
+                        try {
+                            const userDeleteRes = await fetch(`${domain}/api/application/users/${userId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${apiKey}` } });
+                            if(userDeleteRes.ok) deletedUsersCount++;
+                            await new Promise(resolve => setTimeout(resolve, 200));
+                        } catch(e) { console.error(`Gagal hapus user ${userId}, mungkin sudah terhapus.`); }
                     }
                 }
                 
