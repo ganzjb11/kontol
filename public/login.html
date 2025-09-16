@@ -43,36 +43,46 @@
         import { auth, db } from './firebase-config.js';
         import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
         import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+        
         const loginForm = document.getElementById('loginForm');
         const errorMessage = document.getElementById('errorMessage');
         const submitButton = document.getElementById('submitButton');
+
         function showError(message) {
             errorMessage.textContent = message;
             errorMessage.style.display = 'block';
             submitButton.disabled = false;
             submitButton.textContent = "Login";
         }
+
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             submitButton.disabled = true;
             submitButton.textContent = "Memproses...";
             errorMessage.style.display = 'none';
+
             const username = document.getElementById('username').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
+            
             if (!username || !password) return showError('Username dan password wajib diisi!');
+
             try {
                 const usersRef = collection(db, "users");
                 const q = query(usersRef, where("username", "==", username));
                 const querySnapshot = await getDocs(q);
+
                 if (querySnapshot.empty) {
                     throw new Error("Username atau password salah!");
                 }
+                
                 const userData = querySnapshot.docs[0].data();
                 if (userData.banned) {
                     throw new Error("Akun Anda telah di-ban. Silakan hubungi admin.");
                 }
+
                 await signInWithEmailAndPassword(auth, userData.email, password);
                 window.location.href = '/index.html';
+
             } catch (error) {
                 const banMessage = "Akun Anda telah di-ban";
                 showError(error.message.includes(banMessage) ? error.message : 'Username atau password salah!');
